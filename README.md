@@ -7,6 +7,7 @@ Designed to be easy to use, and yet still as powerful as native java.
 # Implemented Features
 
 - Types
+  - [x] Casting
   - [x] Classes
   - [x] int
   - [x] double
@@ -35,6 +36,8 @@ Designed to be easy to use, and yet still as powerful as native java.
   - [x] while
   
 Also implemented are binary operators `+, -, /, *, %, &, |, ^, &&, ||, ==, !=, ===, !==, <, <=, >, >=`
+
+These binary operators offer impicit casting between primative types. I.e. `1.5D / 2`
 
 Unary operations `-, +, !, ~` are planned, as when as binary operation `**`.
 Operator Overloading will also be implemented, and is currently supported for the == and != operator, which calls the object's `equals` method. Use `===` and `!==` operators for the java style of equal operators.

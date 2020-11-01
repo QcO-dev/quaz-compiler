@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 
+import quaz.compiler.compiler.opStack.OperationStack;
 import quaz.compiler.compiler.values.Function;
 import quaz.compiler.compiler.values.FunctionList;
 import quaz.compiler.compiler.values.LocalVariable;
@@ -17,7 +17,8 @@ public class Context {
 	
 	private Compiler compilerInstance;
 	private ClassWriter writer;
-	private MethodVisitor visitor;
+	//private MethodVisitor visitor;
+	private OperationStack opStack;
 	private String lastDescriptor = "";
 	private String methodReturnType = "void";
 	private boolean hasReturnedLast = false;
@@ -62,13 +63,12 @@ public class Context {
 	 * @param locals Copied value
 	 */
 	
-	private Context(Compiler compilerInstance, ClassWriter writer, MethodVisitor visitor, String name, FunctionList functions, HashMap<String, LocalVariable> locals, Map<String, String> typeReferences, String methodReturnType, boolean hasReturnedLast, boolean isLoop, Label loopCondition, Label loopEnd, boolean lastWasConstant) {
+	private Context(Compiler compilerInstance, ClassWriter writer, OperationStack opStack, String name, FunctionList functions, HashMap<String, LocalVariable> locals, Map<String, String> typeReferences, String methodReturnType, boolean hasReturnedLast, boolean isLoop, Label loopCondition, Label loopEnd, boolean lastWasConstant) {
 		this.compilerInstance = compilerInstance;
 		this.writer = writer;
 		this.name = name;
 		this.functions = functions;
 		this.localVariables = locals;
-		this.visitor = visitor;
 		this.typeReferences = typeReferences;
 		this.methodReturnType = methodReturnType;
 		this.hasReturnedLast = hasReturnedLast;
@@ -76,6 +76,7 @@ public class Context {
 		this.loopCondition = loopCondition;
 		this.loopEnd = loopEnd;
 		this.lastWasConstant = lastWasConstant;
+		this.opStack = opStack;
 	}
 
 	public Compiler getCompilerInstance() {
@@ -94,13 +95,13 @@ public class Context {
 		this.writer = writer;
 	}
 
-	public MethodVisitor getVisitor() {
+	/*public MethodVisitor getVisitor() {
 		return visitor;
 	}
 
 	public void setVisitor(MethodVisitor visitor) {
 		this.visitor = visitor;
-	}
+	}*/
 
 	public FunctionList getFunctions() {
 		return functions;
@@ -127,7 +128,7 @@ public class Context {
 	}
 
 	public Context copy() {
-		return new Context(compilerInstance, writer, visitor, name, functions, new HashMap<String, LocalVariable>(localVariables), typeReferences, methodReturnType, hasReturnedLast, isLoop, loopCondition, loopEnd, lastWasConstant);
+		return new Context(compilerInstance, writer, opStack, name, functions, new HashMap<String, LocalVariable>(localVariables), typeReferences, methodReturnType, hasReturnedLast, isLoop, loopCondition, loopEnd, lastWasConstant);
 	}
 
 	public String getMethodReturnType() {
@@ -180,6 +181,14 @@ public class Context {
 
 	public void setLastWasConstant(boolean lastWasConstant) {
 		this.lastWasConstant = lastWasConstant;
+	}
+
+	public OperationStack getOpStack() {
+		return opStack;
+	}
+
+	public void setOpStack(OperationStack opStack) {
+		this.opStack = opStack;
 	}
 	
 }

@@ -1,9 +1,12 @@
 package quaz.compiler.compiler.visitors;
 
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import quaz.compiler.compiler.Context;
+import quaz.compiler.compiler.opStack.OperationStack;
+import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
+import quaz.compiler.compiler.opStack.nodes.LdcNode;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.value.BooleanNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
@@ -13,7 +16,7 @@ import quaz.compiler.parser.nodes.value.IntNode;
 public class ValueVisitor {
 	
 	public void visitStringNode(Node node, Context context) {
-		context.getVisitor().visitLdcInsn(node.getValue());
+		context.getOpStack().push(new LdcNode(node.getValue()));
 		context.setLastDescriptor("Ljava/lang/String;");
 		context.setLastWasConstant(true);
 	}
@@ -24,43 +27,43 @@ public class ValueVisitor {
 		
 		int val = in.getVal();
 		
-		MethodVisitor visitor = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		if(val >= 0) { // Is positive
 			if(val <= 5) {
 				
 				switch(val) {
 					case 0:
-						visitor.visitInsn(Opcodes.ICONST_0);
+						stack.push(new InsnNode(Opcodes.ICONST_0));
 						break;
 					case 1:
-						visitor.visitInsn(Opcodes.ICONST_1);
+						stack.push(new InsnNode(Opcodes.ICONST_1));
 						break;
 					case 2:
-						visitor.visitInsn(Opcodes.ICONST_2);
+						stack.push(new InsnNode(Opcodes.ICONST_2));
 						break;
 					case 3:
-						visitor.visitInsn(Opcodes.ICONST_3);
+						stack.push(new InsnNode(Opcodes.ICONST_3));
 						break;
 					case 4:
-						visitor.visitInsn(Opcodes.ICONST_4);
+						stack.push(new InsnNode(Opcodes.ICONST_4));
 						break;
 					case 5:
-						visitor.visitInsn(Opcodes.ICONST_5);
+						stack.push(new InsnNode(Opcodes.ICONST_5));
 						break;
 				}
 				
 			}
 			
 			else if(val < 256) {
-				visitor.visitIntInsn(Opcodes.BIPUSH, val);
+				stack.push(new IntInsnNode(Opcodes.BIPUSH, val));
 			}
 			
 			else if(val < 65536) {
-				visitor.visitIntInsn(Opcodes.SIPUSH, val);
+				stack.push(new IntInsnNode(Opcodes.SIPUSH, val));
 			}
 			
 			else {
-				visitor.visitLdcInsn(val);
+				stack.push(new LdcNode(val));
 			}
 		
 		}
@@ -68,19 +71,19 @@ public class ValueVisitor {
 		else {
 			
 			if(val == -1) {
-				visitor.visitInsn(Opcodes.ICONST_M1);
+				stack.push(new InsnNode(Opcodes.ICONST_M1));
 			}
 			
 			else if(val >= -128) {
-				visitor.visitIntInsn(Opcodes.BIPUSH, val);
+				stack.push(new IntInsnNode(Opcodes.BIPUSH, val));
 			}
 			
 			else if(val >= 32768) {
-				visitor.visitIntInsn(Opcodes.SIPUSH, val);
+				stack.push(new IntInsnNode(Opcodes.SIPUSH, val));
 			}
 			
 			else {
-				visitor.visitLdcInsn(val);
+				stack.push(new LdcNode(val));
 			}
 			
 		}
@@ -95,16 +98,16 @@ public class ValueVisitor {
 		
 		double val = dn.getVal();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(val == 0) {
-			mv.visitInsn(Opcodes.DCONST_0);
+			stack.push(new InsnNode(Opcodes.DCONST_0));
 		}
 		else if(val == 1) {
-			mv.visitInsn(Opcodes.DCONST_1);
+			stack.push(new InsnNode(Opcodes.DCONST_1));
 		}
 		else {
-			mv.visitLdcInsn(val);
+			stack.push(new LdcNode(val));
 		}
 		
 		context.setLastDescriptor("D");
@@ -117,19 +120,19 @@ public class ValueVisitor {
 		
 		float val = fn.getVal();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(val == 0) {
-			mv.visitInsn(Opcodes.FCONST_0);
+			stack.push(new InsnNode(Opcodes.FCONST_0));
 		}
 		else if(val == 1) {
-			mv.visitInsn(Opcodes.FCONST_1);
+			stack.push(new InsnNode(Opcodes.FCONST_1));
 		}
 		else if(val == 2) {
-			mv.visitInsn(Opcodes.FCONST_2);
+			stack.push(new InsnNode(Opcodes.FCONST_2));
 		}
 		else {
-			mv.visitLdcInsn(val);
+			stack.push(new LdcNode(val));
 		}
 		
 		context.setLastDescriptor("F");
@@ -140,10 +143,10 @@ public class ValueVisitor {
 		BooleanNode bn = (BooleanNode) node;
 		
 		if(bn.getVal()) {
-			context.getVisitor().visitInsn(Opcodes.ICONST_1);
+			context.getOpStack().push(new InsnNode(Opcodes.ICONST_1));
 		}
 		else {
-			context.getVisitor().visitInsn(Opcodes.ICONST_0);
+			context.getOpStack().push(new InsnNode(Opcodes.ICONST_0));
 		}
 		
 		context.setLastDescriptor("Z");

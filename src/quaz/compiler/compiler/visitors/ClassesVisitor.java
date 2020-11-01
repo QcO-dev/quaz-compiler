@@ -6,13 +6,19 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
+import quaz.compiler.compiler.opStack.OperationStack;
+import quaz.compiler.compiler.opStack.nodes.FieldNode;
+import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.LabelNode;
+import quaz.compiler.compiler.opStack.nodes.LineNumberNode;
+import quaz.compiler.compiler.opStack.nodes.MethodNode;
+import quaz.compiler.compiler.opStack.nodes.TypeNode;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.classes.CastNode;
@@ -27,7 +33,7 @@ public class ClassesVisitor {
 
 		InstanceNode in = (InstanceNode) node;
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 
 		Compiler ci = context.getCompilerInstance();
 
@@ -40,8 +46,9 @@ public class ClassesVisitor {
 					in.getEnd());
 		}
 
-		mv.visitTypeInsn(Opcodes.NEW, type);
-		mv.visitInsn(Opcodes.DUP);
+		//mv.visitTypeInsn(Opcodes.NEW, type);
+		stack.push(new TypeNode(Opcodes.NEW, type));
+		stack.push(new InsnNode(Opcodes.DUP));
 
 		String descriptor = "";
 
@@ -71,8 +78,9 @@ public class ClassesVisitor {
 			e.printStackTrace();
 		}
 
-		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false);
-
+		//mv.visitMethodInsn(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false);
+		stack.push(new MethodNode(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false));
+		
 		context.setLastDescriptor("L" + type + ";");
 		context.setLastWasConstant(false);
 	}
@@ -103,18 +111,18 @@ public class ClassesVisitor {
 		
 		Node right = man.getRight();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(right instanceof FunctionCallNode) {
-			memberFunctionCall(right, leftDesc, leftDescType, ci, mv, man, context, root);
+			memberFunctionCall(right, leftDesc, leftDescType, ci, stack, man, context, root);
 		}
 
 		else if(right instanceof VariableAccessNode) {
-			memberAccess(right, leftDesc, leftDescType, mv, man, context, false);
+			memberAccess(right, leftDesc, leftDescType, stack, man, context, false);
 		}
 		
 		else { // Member Access Node
-			memberAccessNode(right, leftDesc, leftDescType, ci, mv, man, context, false, root);
+			memberAccessNode(right, leftDesc, leftDescType, ci, stack, man, context, false, root);
 		}
 		context.setLastWasConstant(false);
 		
@@ -136,30 +144,30 @@ public class ClassesVisitor {
 		
 		Node right = man.getRight();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(right instanceof FunctionCallNode) {
 			throw new CompilerLogicException("Cannot set a function", man.getStart(), man.getEnd());
 		}
 
 		else if(right instanceof VariableAccessNode) {
-			memberAccess(right, leftDesc, leftDescType, mv, man, context, true);
+			memberAccess(right, leftDesc, leftDescType, stack, man, context, true);
 		}
 		
 		else { // Member Access Node
-			memberAccessNode(right, leftDesc, leftDescType, ci, mv, man, context, true, false);
+			memberAccessNode(right, leftDesc, leftDescType, ci, stack, man, context, true, false);
 		}
 		context.setLastWasConstant(false);
 		
 	}
 	
-	private void memberAccessNode(Node right, String leftDesc, String leftDescType, Compiler ci, MethodVisitor mv, MemberAccessNode man, Context context, boolean put, boolean root) throws CompilerLogicException {
+	private void memberAccessNode(Node right, String leftDesc, String leftDescType, Compiler ci, OperationStack stack, MemberAccessNode man, Context context, boolean put, boolean root) throws CompilerLogicException {
 		Node left = ((MemberAccessNode) right).getLeft();
 		
 		//System.out.println(left);
 		
 		if(left instanceof FunctionCallNode) {
-			memberFunctionCall(left, leftDesc, leftDescType, ci, mv, man, context, root);
+			memberFunctionCall(left, leftDesc, leftDescType, ci, stack, man, context, root);
 			
 			String newLeftDesc = Descriptors.cropTypeDescriptor(context.getLastDescriptor());
 			
@@ -168,20 +176,20 @@ public class ClassesVisitor {
 			Node newRight = ((MemberAccessNode) right).getRight();
 			
 			if(newRight instanceof FunctionCallNode) {
-				memberFunctionCall(newRight, newLeftDesc, newLeftDescType, ci, mv, (MemberAccessNode) right, context, root);
+				memberFunctionCall(newRight, newLeftDesc, newLeftDescType, ci, stack, (MemberAccessNode) right, context, root);
 			}
 
 			else if(newRight instanceof VariableAccessNode) {
-				memberAccess(newRight, newLeftDesc, newLeftDescType, mv, (MemberAccessNode) right, context, put);
+				memberAccess(newRight, newLeftDesc, newLeftDescType, stack, (MemberAccessNode) right, context, put);
 			}
 			else {
-				memberAccessNode(newRight, newLeftDesc, newLeftDescType, ci, mv, man, context, put, root);
+				memberAccessNode(newRight, newLeftDesc, newLeftDescType, ci, stack, man, context, put, root);
 			}
 			
 		}
 		else if(left instanceof VariableAccessNode) {
 			
-			memberAccess(left, leftDesc, leftDescType, mv, man, context, put);
+			memberAccess(left, leftDesc, leftDescType, stack, man, context, put);
 			
 			String newLeftDesc = Descriptors.cropTypeDescriptor(context.getLastDescriptor());
 			
@@ -195,22 +203,22 @@ public class ClassesVisitor {
 					throw new CompilerLogicException("Cannot set a function", man.getStart(), man.getEnd());
 				}
 				
-				memberFunctionCall(newRight, newLeftDesc, newLeftDescType, ci, mv, (MemberAccessNode) right, context, root);
+				memberFunctionCall(newRight, newLeftDesc, newLeftDescType, ci, stack, (MemberAccessNode) right, context, root);
 			}
 
 			else if(newRight instanceof VariableAccessNode) {
-				memberAccess(newRight, newLeftDesc, newLeftDescType, mv, (MemberAccessNode) right, context, put);
+				memberAccess(newRight, newLeftDesc, newLeftDescType, stack, (MemberAccessNode) right, context, put);
 			}
 			
 			else {
-				memberAccessNode(newRight, newLeftDesc, newLeftDescType, ci, mv, man, context, put, root);
+				memberAccessNode(newRight, newLeftDesc, newLeftDescType, ci, stack, man, context, put, root);
 			}
 			
 		}
 		
 	}
 	
-	private void memberFunctionCall(Node right, String leftDesc, String leftDescType, Compiler ci, MethodVisitor mv, MemberAccessNode man, Context context, boolean root) throws CompilerLogicException {
+	private void memberFunctionCall(Node right, String leftDesc, String leftDescType, Compiler ci, OperationStack stack, MemberAccessNode man, Context context, boolean root) throws CompilerLogicException {
 		String funcName = ((FunctionCallNode) right).getId().getValue();
 		
 		Class<?> parent = Descriptors.descriptorToClass(leftDesc);
@@ -247,23 +255,23 @@ public class ClassesVisitor {
 		}
 		
 		Label l0 = new Label();
-
-		mv.visitLabel(l0);
-		mv.visitLineNumber(man.getStart().getLine(), l0);
-		mv.visitMethodInsn(isStatic ? Opcodes.INVOKESTATIC : Opcodes.INVOKEVIRTUAL, leftDesc, funcName, "(" + descriptor + ")" + returnTypeDesc, false);
+		
+		stack.push(new LabelNode(l0));
+		stack.push(new LineNumberNode(man.getStart().getLine(), l0));
+		stack.push(new MethodNode(isStatic ? Opcodes.INVOKESTATIC : Opcodes.INVOKEVIRTUAL, leftDesc, funcName, "(" + descriptor + ")" + returnTypeDesc, false));
 		
 		if(!returnTypeDesc.equals("V") && root) {
-			if(returnTypeDesc.equals("D") ||returnTypeDesc.equals("J")) {
-				mv.visitInsn(Opcodes.POP2);
+			if(returnTypeDesc.equals("D") || returnTypeDesc.equals("J")) {
+				stack.push(new InsnNode(Opcodes.POP2));
 			} else {
-				mv.visitInsn(Opcodes.POP);
+				stack.push(new InsnNode(Opcodes.POP));
 			}
 		}
 		
 		context.setLastDescriptor(returnTypeDesc);
 	}
 	
-	private void memberAccess(Node right, String leftDesc, String leftDescType, MethodVisitor mv, MemberAccessNode man, Context context, boolean put) throws CompilerLogicException {
+	private void memberAccess(Node right, String leftDesc, String leftDescType, OperationStack stack, MemberAccessNode man, Context context, boolean put) throws CompilerLogicException {
 		Class<?> parent = Descriptors.descriptorToClass(leftDesc);
 		
 		String variableName = ((VariableAccessNode) right).getName();
@@ -290,12 +298,12 @@ public class ClassesVisitor {
 		
 		Label l0 = new Label();
 
-		mv.visitLabel(l0);
-		mv.visitLineNumber(man.getStart().getLine(), l0);
+		stack.push(new LabelNode(l0));
+		stack.push(new LineNumberNode(man.getStart().getLine(), l0));
 		
 		int op = put ? (isStatic ? Opcodes.PUTSTATIC : Opcodes.PUTFIELD) : (isStatic ? Opcodes.GETSTATIC : Opcodes.GETFIELD);
 		
-		mv.visitFieldInsn(op, leftDesc, variableName, desc);
+		stack.push(new FieldNode(op, leftDesc, variableName, desc));
 		
 		context.setLastDescriptor(desc);
 	}
@@ -328,7 +336,9 @@ public class ClassesVisitor {
 			desc = Descriptors.typeToMethodDescriptor(type);
 		}
 		
-		MethodVisitor mv = context.getVisitor();
+		//MethodVisitor mv = context.getVisitor();
+		
+		OperationStack stack = context.getOpStack();
 		
 		if(Descriptors.isPrimative(leftDesc)) {
 			
@@ -338,11 +348,11 @@ public class ClassesVisitor {
 						case "I":
 							break;
 						case "D":
-							mv.visitInsn(Opcodes.I2D);
+							stack.push(new InsnNode(Opcodes.I2D));
 							context.setLastDescriptor("D");
 							break;
 						case "F":
-							mv.visitInsn(Opcodes.I2F);
+							stack.push(new InsnNode(Opcodes.I2F));
 							context.setLastDescriptor("F");
 							break;
 						case "Z":
@@ -350,7 +360,7 @@ public class ClassesVisitor {
 							break;
 						
 						case "Ljava/lang/String;": {
-							mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false);
+							stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false));
 							context.setLastDescriptor("Ljava/lang/String;");
 							break;
 						}
@@ -363,16 +373,16 @@ public class ClassesVisitor {
 						case "D":
 							break;
 						case "I":
-							mv.visitInsn(Opcodes.D2I);
+							stack.push(new InsnNode(Opcodes.D2I));
 							context.setLastDescriptor("I");
 							break;
 						case "F":
-							mv.visitInsn(Opcodes.D2F);
+							stack.push(new InsnNode(Opcodes.D2F));
 							context.setLastDescriptor("F");
 							break;
 							
 						case "Ljava/lang/String;": {
-							mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "toString", "(D)Ljava/lang/String;", false);
+							stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Double", "toString", "(D)Ljava/lang/String;", false));
 							context.setLastDescriptor("Ljava/lang/String;");
 							break;
 						}
@@ -386,16 +396,16 @@ public class ClassesVisitor {
 						case "F":
 							break;
 						case "I":
-							mv.visitInsn(Opcodes.F2I);
+							stack.push(new InsnNode(Opcodes.F2I));
 							context.setLastDescriptor("I");
 							break;
 						case "D":
-							mv.visitInsn(Opcodes.F2D);
+							stack.push(new InsnNode(Opcodes.F2D));
 							context.setLastDescriptor("D");
 							break;
 							
 						case "Ljava/lang/String;": {
-							mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "toString", "(F)Ljava/lang/String;", false);
+							stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Float", "toString", "(F)Ljava/lang/String;", false));
 							context.setLastDescriptor("Ljava/lang/String;");
 							break;
 						}
@@ -413,7 +423,7 @@ public class ClassesVisitor {
 							break;
 							
 						case "Ljava/lang/String;": {
-							mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "toString", "(Z)Ljava/lang/String;", false);
+							stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Boolean", "toString", "(Z)Ljava/lang/String;", false));
 							context.setLastDescriptor("Ljava/lang/String;");
 							break;
 						}
@@ -432,27 +442,27 @@ public class ClassesVisitor {
 			if(leftClass.isAssignableFrom(String.class)) {
 				switch(desc) {
 					case "I": {
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "parseInt", "(Ljava/lang/String;)I", false);
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Integer", "parseInt", "(Ljava/lang/String;)I", false));
 						context.setLastDescriptor("I");
 						context.setLastWasConstant(false);
 						return;
 					}
 					case "D": {
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "parseDouble", "(Ljava/lang/String;)D", false);
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Double", "parseDouble", "(Ljava/lang/String;)D", false));
 						context.setLastDescriptor("D");
 						context.setLastWasConstant(false);
 						return;
 					}
 					
 					case "F": {
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "parseFloat", "(Ljava/lang/String;)F", false);
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Float", "parseFloat", "(Ljava/lang/String;)F", false));
 						context.setLastDescriptor("F");
 						context.setLastWasConstant(false);
 						return;
 					}
 					
 					case "Z": {
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "parseBoolean", "(Ljava/lang/String;)Z", false);
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Boolean", "parseBoolean", "(Ljava/lang/String;)Z", false));
 						context.setLastDescriptor("Z");
 						context.setLastWasConstant(false);
 						return;
@@ -472,7 +482,7 @@ public class ClassesVisitor {
 				throw new CompilerLogicException("Cannot cast from " + Descriptors.descriptorToType(leftDesc) + " to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
 			}
 			
-			mv.visitTypeInsn(Opcodes.CHECKCAST, Descriptors.cropTypeDescriptor(desc));
+			stack.push(new TypeNode(Opcodes.CHECKCAST, Descriptors.cropTypeDescriptor(desc)));
 			context.setLastDescriptor(desc);
 			
 		}

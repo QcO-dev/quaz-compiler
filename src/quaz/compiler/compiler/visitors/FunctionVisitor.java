@@ -9,6 +9,11 @@ import org.objectweb.asm.Opcodes;
 import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
+import quaz.compiler.compiler.opStack.OperationStack;
+import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.LabelNode;
+import quaz.compiler.compiler.opStack.nodes.LineNumberNode;
+import quaz.compiler.compiler.opStack.nodes.MethodNode;
 import quaz.compiler.compiler.values.Function;
 import quaz.compiler.compiler.values.LocalVariable;
 import quaz.compiler.exception.CompilerLogicException;
@@ -63,8 +68,10 @@ public class FunctionVisitor implements Opcodes {
 						function.getDescriptor(), 
 						null, null);
 		
-		context.setVisitor(visitor);
-		copy.setVisitor(visitor);
+		OperationStack stack = new OperationStack();
+		
+		context.setOpStack(stack);
+		copy.setOpStack(stack);
 		
 		String returnType = "void";
 		
@@ -89,8 +96,10 @@ public class FunctionVisitor implements Opcodes {
 		context.getCompilerInstance().visit(fdn.getStatement(), copy);
 		
 		if(!copy.hasReturnedLast())
-			getDefaultReturn(visitor, copy);
+			getDefaultReturn(stack, copy);
 			//visitor.visitInsn(RETURN);
+		
+		stack.fillMethodVisitor(visitor);
 		
 		visitor.visitMaxs(0, 0);
 		
@@ -104,7 +113,8 @@ public class FunctionVisitor implements Opcodes {
 		FunctionCallNode fcn = (FunctionCallNode) node;
 		
 		String funcName = fcn.getId().getValue();
-		MethodVisitor mv = context.getVisitor();
+		
+		OperationStack stack = context.getOpStack();
 		
 		Compiler ci = context.getCompilerInstance();
 		
@@ -126,16 +136,16 @@ public class FunctionVisitor implements Opcodes {
 		if(func != null) {
 			Label l0 = new Label();
 			
-			mv.visitLabel(l0);
-			mv.visitLineNumber(fcn.getStart().getLine(), l0);
-			mv.visitMethodInsn(INVOKESTATIC, func.getOwner(), funcName, func.getDescriptor(), func.isInterface());
+			stack.push(new LabelNode(l0));
+			stack.push(new LineNumberNode(fcn.getStart().getLine(), l0));
+			stack.push(new MethodNode(INVOKESTATIC, func.getOwner(), funcName, func.getDescriptor(), func.isInterface()));
 			context.setLastDescriptor(func.getReturnTypeDescriptor());
 			
 			if(!func.getReturnTypeDescriptor().equals("V") && root) {
 				if(func.getReturnTypeDescriptor().equals("D") ||func.getReturnTypeDescriptor().equals("J")) {
-					mv.visitInsn(Opcodes.POP2);
+					stack.push(new InsnNode(Opcodes.POP2));
 				} else {
-					mv.visitInsn(Opcodes.POP);
+					stack.push(new InsnNode(Opcodes.POP));
 				}
 			}
 			context.setLastWasConstant(false);
@@ -166,15 +176,15 @@ public class FunctionVisitor implements Opcodes {
 			
 			Label l0 = new Label();
 			
-			mv.visitLabel(l0);
-			mv.visitLineNumber(fcn.getStart().getLine(), l0);
-			mv.visitMethodInsn(INVOKESTATIC, f.getOwner(), funcName, f.getDescriptor(), f.isInterface());
+			stack.push(new LabelNode(l0));
+			stack.push(new LineNumberNode(fcn.getStart().getLine(), l0));
+			stack.push(new MethodNode(INVOKESTATIC, f.getOwner(), funcName, f.getDescriptor(), f.isInterface()));
 			
 			if(!f.getReturnTypeDescriptor().equals("V") && root) {
 				if(f.getReturnTypeDescriptor().equals("D") || f.getReturnTypeDescriptor().equals("J")) {
-					mv.visitInsn(Opcodes.POP2);
+					stack.push(new InsnNode(Opcodes.POP2));
 				} else {
-					mv.visitInsn(Opcodes.POP);
+					stack.push(new InsnNode(Opcodes.POP));
 				}
 			}
 			
@@ -188,12 +198,12 @@ public class FunctionVisitor implements Opcodes {
 	
 	public void visitReturnNode(Node node, Context context) throws CompilerLogicException {
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		Node value = (Node) node.getValue();
 		
 		if(value == null) {
-			getDefaultReturn(mv, context);
+			getDefaultReturn(stack, context);
 			return;
 		}
 		
@@ -210,26 +220,26 @@ public class FunctionVisitor implements Opcodes {
 		
 		switch(desc) {
 			case "I":
-				mv.visitInsn(IRETURN);
+				stack.push(new InsnNode(IRETURN));
 				context.setHasReturnedLast(true);
 				break;
 				
 			case "D":
-				mv.visitInsn(DRETURN);
+				stack.push(new InsnNode(DRETURN));
 				context.setHasReturnedLast(true);
 				break;
 				
 			case "F":
-				mv.visitInsn(FRETURN);
+				stack.push(new InsnNode(FRETURN));
 				context.setHasReturnedLast(true);
 				break;
 				
 			case "Z":
-				mv.visitInsn(IRETURN);
+				stack.push(new InsnNode(IRETURN));
 				context.setHasReturnedLast(true);
 				break;
 			default:
-				mv.visitInsn(ARETURN);
+				stack.push(new InsnNode(ARETURN));
 				context.setHasReturnedLast(true);
 				break;
 		}
@@ -238,10 +248,10 @@ public class FunctionVisitor implements Opcodes {
 		
 	}
 	
-	private void getDefaultReturn(MethodVisitor mv, Context context) {
+	private void getDefaultReturn(OperationStack stack, Context context) {
 		
 		if(context.getMethodReturnType().equals("void")) {
-			mv.visitInsn(RETURN);
+			stack.push(new InsnNode(RETURN));
 			context.setHasReturnedLast(true);
 			return;
 		}
@@ -249,31 +259,31 @@ public class FunctionVisitor implements Opcodes {
 		if(Descriptors.typeIsPrimative(context.getMethodReturnType())) {
 			switch(context.getMethodReturnType()) {
 				case "int":
-					mv.visitInsn(ICONST_0);
-					mv.visitInsn(IRETURN);
+					stack.push(new InsnNode(ICONST_0));
+					stack.push(new InsnNode(IRETURN));
 					context.setHasReturnedLast(true);
 					break;
 				case "double":
-					mv.visitInsn(DCONST_0);
-					mv.visitInsn(DRETURN);
+					stack.push(new InsnNode(DCONST_0));
+					stack.push(new InsnNode(DRETURN));
 					context.setHasReturnedLast(true);
 					break;
 				case "float":
-					mv.visitInsn(FCONST_0);
-					mv.visitInsn(FRETURN);
+					stack.push(new InsnNode(FCONST_0));
+					stack.push(new InsnNode(FRETURN));
 					context.setHasReturnedLast(true);
 					break;
 				case "boolean":
-					mv.visitInsn(ICONST_0);
-					mv.visitInsn(IRETURN);
+					stack.push(new InsnNode(ICONST_0));
+					stack.push(new InsnNode(IRETURN));
 					context.setHasReturnedLast(true);
 					break;
 			}
 			return;
 		}
 		
-		mv.visitInsn(ACONST_NULL);
-		mv.visitInsn(ARETURN);
+		stack.push(new InsnNode(ACONST_NULL));
+		stack.push(new InsnNode(ARETURN));
 		context.setHasReturnedLast(true);
 		
 	}

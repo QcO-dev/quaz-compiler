@@ -1,13 +1,25 @@
 package quaz.compiler.compiler.visitors;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
+import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
+import quaz.compiler.compiler.opStack.OperationStack;
+import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
+import quaz.compiler.compiler.opStack.nodes.InvokeDynamicNode;
+import quaz.compiler.compiler.opStack.nodes.JumpNode;
+import quaz.compiler.compiler.opStack.nodes.LabelNode;
+import quaz.compiler.compiler.opStack.nodes.LdcNode;
+import quaz.compiler.compiler.opStack.nodes.MethodNode;
+import quaz.compiler.compiler.opStack.nodes.OpNode;
+import quaz.compiler.compiler.opStack.nodes.VarNode;
 import quaz.compiler.compiler.values.LocalVariable;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.lexer.TokenType;
@@ -33,6 +45,8 @@ public class OperationVisitor {
 		
 		String leftDesc = null;
 		
+		int addedElements = 0;
+		
 		if(bon.getLeft() instanceof VariableAccessNode && bon.getType() == TokenType.EQUALS) {
 			LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
 
@@ -45,7 +59,14 @@ public class OperationVisitor {
 			leftDesc = var.getDescriptor();
 		}
 		else {
+			
+			int length = context.getOpStack().size();
+			
 			context.getCompilerInstance().visit(bon.getLeft(), context);
+			
+			int newLength = context.getOpStack().size();
+			
+			addedElements = newLength - length;
 			
 			leftDesc = context.getLastDescriptor();
 		}
@@ -64,50 +85,26 @@ public class OperationVisitor {
 				booleanOperation(bon, bon.getType(), bon.getRight(), context);
 				break;
 			default:
-				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context);
+				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 		}
 
 	}
 
-	private void refOperation(String leftDesc, BinaryOperationNode bon, TokenType type, Node right, Context context)
+	private void refOperation(String leftDesc, BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 		context.getCompilerInstance().visit(bon.getRight(), context);
 
 		String rightDesc = context.getLastDescriptor();
 		
-		MethodVisitor mv = context.getVisitor();
+		//MethodVisitor mv = context.getVisitor();
+		
+		OperationStack stack = context.getOpStack();
 		
 		if(leftDesc.equals("Ljava/lang/String;")) {
 			switch(type) {
 				case PLUS:
-					
-					/*
-					mv.visitInvokeDynamicInsn("makeConcatWithConstants", 
-							"(Ljava/lang/String;II)Ljava/lang/String;", 
-							new Handle(Opcodes.H_INVOKESTATIC, 
-									"java/lang/invoke/StringConcatFactory", 
-									"makeConcatWithConstants", 
-									"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
-									false), 
-							// \u0001 = object on stack -> characters = string constant
-							new Object[]{"WHAT\u0001\u0001!\u0001"});
-					*/
-					
-					// Go through until no longer adding - then make above
-					
-					Node rightAdd = bon.getRight();
-					
-					String descriptor = "";
-					String recipe = "";
-					
-					while(rightAdd instanceof BinaryOperationNode && ((BinaryOperationNode) rightAdd).getType() == TokenType.PLUS) {
-						
-						
-						
-						
-					}
-					
+					concatStrings(bon, stack, addedElements, context);
 					return;
 				default:
 					break;
@@ -121,7 +118,7 @@ public class OperationVisitor {
 
 		switch(type) {
 			case EQUALS:
-				mv.visitInsn(Opcodes.ASTORE);
+				stack.push(new InsnNode(Opcodes.ASTORE));
 				context.setLastDescriptor(leftDesc);
 				break;
 				
@@ -129,17 +126,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ACMPNE, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ACMPNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -150,17 +147,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ACMPEQ, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ACMPEQ, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -168,30 +165,31 @@ public class OperationVisitor {
 			}
 			
 			case BOOL_EQ: {
-				mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Descriptors.cropTypeDescriptor(leftDesc), "equals", "(Ljava/lang/Object;)Z", false);
+				stack.push(new MethodNode(Opcodes.INVOKEVIRTUAL, Descriptors.cropTypeDescriptor(leftDesc), "equals", "(Ljava/lang/Object;)Z", false));
 				context.setLastDescriptor("Z");
 				break;
 			}
 			
 			case BOOL_NE: {
-				mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Descriptors.cropTypeDescriptor(leftDesc), "equals", "(Ljava/lang/Object;)Z", false);
+				stack.push(new MethodNode(Opcodes.INVOKEVIRTUAL, Descriptors.cropTypeDescriptor(leftDesc), "equals", "(Ljava/lang/Object;)Z", false));
 				
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IFNE, falseL);
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
+				
 				break;
 			}
 				
@@ -203,22 +201,120 @@ public class OperationVisitor {
 		
 		//context.setLastDescriptor(leftDesc);
 	}
-
+	
+	private void concatStrings(BinaryOperationNode bon, OperationStack stack, int addedElements, Context context) throws CompilerLogicException {
+		if(addedElements != 0)
+			for(int i = 0; i <= addedElements; i++) {
+				stack.pop();
+			}
+		
+		Node rightAdd = bon;
+		
+		ArrayList<Object> descriptorList = new ArrayList<>();
+		ArrayList<Object> recipeList = new ArrayList<>();
+		
+		Compiler ci = context.getCompilerInstance();
+		
+		while(rightAdd instanceof BinaryOperationNode && ((BinaryOperationNode) rightAdd).getType() == TokenType.PLUS) {
+			
+			
+			ci.visit(((BinaryOperationNode) rightAdd).getRight(), context);
+			
+			if(context.getLastWasConstant()) {
+				
+				OpNode oNode = stack.pop();
+				
+				if(oNode instanceof InsnNode) {
+					recipeList.add(((InsnNode) oNode).getValue());
+				}
+				else if(oNode instanceof IntInsnNode) {
+					recipeList.add(((IntInsnNode) oNode).getValue());
+				}
+				else if(oNode instanceof LdcNode) {
+					recipeList.add(((LdcNode) oNode).getValue());
+				}
+				else {
+					// Shouldn't happen, handle just in case something went very wrong
+					throw new CompilerLogicException("Unexpected constant value.", ((BinaryOperationNode) rightAdd).getLeft().getStart(), ((BinaryOperationNode) rightAdd).getLeft().getEnd());
+				}
+				
+			}
+			else {
+				descriptorList.add(context.getLastDescriptor());
+				recipeList.add("\u0001");
+			}
+			
+			rightAdd = ((BinaryOperationNode) rightAdd).getLeft();
+			
+		}
+		
+		ci.visit(rightAdd, context);
+		
+		if(context.getLastWasConstant()) {
+			
+			OpNode oNode = stack.pop();
+			
+			if(oNode instanceof InsnNode) {
+				recipeList.add(((InsnNode) oNode).getValue());
+			}
+			else if(oNode instanceof IntInsnNode) {
+				recipeList.add(((IntInsnNode) oNode).getValue());
+			}
+			else if(oNode instanceof LdcNode) {
+				recipeList.add(((LdcNode) oNode).getValue());
+			}
+			else {
+				// Shouldn't happen, handle just in case something went very wrong
+				throw new CompilerLogicException("Unexpected constant value.", rightAdd.getStart(), rightAdd.getEnd());
+			}
+			
+		}
+		else {
+			descriptorList.add(context.getLastDescriptor());
+			recipeList.add("\u0001");
+		}
+		
+		//descriptorList.add(")Ljava/lang/String;");
+		
+		Collections.reverse(descriptorList);
+		Collections.reverse(recipeList);
+		
+		StringBuilder descriptor = new StringBuilder("(");
+		StringBuilder recipe = new StringBuilder();
+		
+		descriptorList.forEach(descriptor::append);
+		recipeList.forEach(recipe::append);
+		
+		descriptor.append(")Ljava/lang/String;");
+		
+		
+		stack.push(new InvokeDynamicNode("makeConcatWithConstants", descriptor.toString(), new Handle(Opcodes.H_INVOKESTATIC, 
+					"java/lang/invoke/StringConcatFactory", 
+					"makeConcatWithConstants", 
+					"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
+					false), 
+				new Object[] {recipe.toString()}));
+		
+		context.setLastDescriptor("Ljava/lang/String;");
+	}
+	
 	private void intOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
 			throws CompilerLogicException {
 
 		context.getCompilerInstance().visit(bon.getRight(), context);
 
 		String rightDesc = context.getLastDescriptor();
-
+		
+		OperationStack stack = context.getOpStack();
+		
 		if(!rightDesc.equals("I")) {
 
 			switch(rightDesc) {
 				case "D":
-					context.getVisitor().visitInsn(Opcodes.D2I);
+					stack.push(new InsnNode(Opcodes.D2I));
 					break;
 				case "F":
-					context.getVisitor().visitInsn(Opcodes.F2I);
+					stack.push(new InsnNode(Opcodes.F2I));
 					break;
 				case "Z":
 					break;
@@ -230,44 +326,42 @@ public class OperationVisitor {
 
 		}
 		
-		MethodVisitor mv = context.getVisitor();
-		
 		switch(type) {
 			case PLUS:
-				mv.visitInsn(Opcodes.IADD);
+				stack.push(new InsnNode(Opcodes.IADD));
 				context.setLastDescriptor("I");
 				break;
 
 			case MINUS:
-				mv.visitInsn(Opcodes.ISUB);
+				stack.push(new InsnNode(Opcodes.ISUB));
 				context.setLastDescriptor("I");
 				break;
 
 			case MULTIPLY:
-				mv.visitInsn(Opcodes.IMUL);
+				stack.push(new InsnNode(Opcodes.IMUL));
 				context.setLastDescriptor("I");
 				break;
 			case DIVIDE:
-				mv.visitInsn(Opcodes.IDIV);
+				stack.push(new InsnNode(Opcodes.IDIV));
 				context.setLastDescriptor("I");
 				break;
 
 			case MODULUS:
-				mv.visitInsn(Opcodes.IREM);
+				stack.push(new InsnNode(Opcodes.IREM));
 				context.setLastDescriptor("I");
 				break;
 
 			case BIT_OR:
-				mv.visitInsn(Opcodes.IOR);
+				stack.push(new InsnNode(Opcodes.IOR));
 				context.setLastDescriptor("I");
 				break;
 			case BIT_AND:
-				mv.visitInsn(Opcodes.IAND);
+				stack.push(new InsnNode(Opcodes.IAND));
 				context.setLastDescriptor("I");
 				break;
 				
 			case BIT_XOR:
-				mv.visitInsn(Opcodes.IXOR);
+				stack.push(new InsnNode(Opcodes.IXOR));
 				context.setLastDescriptor("I");
 				break;
 				
@@ -276,17 +370,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPNE, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -298,17 +392,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPEQ, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -319,17 +413,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPGE, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPGE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -340,17 +434,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPGT, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPGT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -361,17 +455,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPLE, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPLE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -382,17 +476,17 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPLT, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPLT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -410,7 +504,7 @@ public class OperationVisitor {
 								bon.getLeft().getStart(), bon.getLeft().getEnd());
 					}
 
-					mv.visitVarInsn(Opcodes.ISTORE, var.getIndex());
+					stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
 				}
 
 				else {
@@ -435,15 +529,15 @@ public class OperationVisitor {
 
 		String rightDesc = context.getLastDescriptor();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(!rightDesc.equals("D")) {
 			switch(rightDesc) {
 				case "I":
-					mv.visitInsn(Opcodes.I2D);
+					stack.push(new InsnNode(Opcodes.I2D));
 					break;
 				case "F":
-					mv.visitInsn(Opcodes.F2D);
+					stack.push(new InsnNode(Opcodes.F2D));
 					break;
 				default:
 					throw new CompilerLogicException("Expected double, got " + Descriptors.descriptorToType(rightDesc),
@@ -453,48 +547,48 @@ public class OperationVisitor {
 
 		switch(type) {
 			case PLUS:
-				mv.visitInsn(Opcodes.DADD);
+				stack.push(new InsnNode(Opcodes.DADD));
 				context.setLastDescriptor("D");
 				break;
 
 			case MINUS:
-				mv.visitInsn(Opcodes.DSUB);
+				stack.push(new InsnNode(Opcodes.DSUB));
 				context.setLastDescriptor("D");
 				break;
 
 			case MULTIPLY:
-				mv.visitInsn(Opcodes.DMUL);
+				stack.push(new InsnNode(Opcodes.DMUL));
 				context.setLastDescriptor("D");
 				break;
 			case DIVIDE:
-				mv.visitInsn(Opcodes.DDIV);
+				stack.push(new InsnNode(Opcodes.DDIV));
 				context.setLastDescriptor("D");
 				break;
 
 			case MODULUS:
-				mv.visitInsn(Opcodes.DREM);
+				stack.push(new InsnNode(Opcodes.DREM));
 				context.setLastDescriptor("D");
 				break;
 			
 			case BOOL_TRI_EQ:
 			case BOOL_EQ: {
-				
+			
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFNE, falseL);
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -508,19 +602,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFEQ, falseL);
+				stack.push(new JumpNode(Opcodes.IFEQ, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -532,19 +626,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFGE, falseL);
+				stack.push(new JumpNode(Opcodes.IFGE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -555,19 +649,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFGT, falseL);
+				stack.push(new JumpNode(Opcodes.IFGT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -578,19 +672,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFLE, falseL);
+				stack.push(new JumpNode(Opcodes.IFLE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -601,19 +695,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.DCMPL);
+				stack.push(new InsnNode(Opcodes.DCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFLT, falseL);
+				stack.push(new JumpNode(Opcodes.IFLT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -624,7 +718,7 @@ public class OperationVisitor {
 
 				LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
 
-				mv.visitVarInsn(Opcodes.DSTORE, var.getIndex());
+				stack.push(new VarNode(Opcodes.DSTORE, var.getIndex()));
 				context.setLastDescriptor("D");
 				break;
 			}
@@ -644,15 +738,15 @@ public class OperationVisitor {
 
 		String rightDesc = context.getLastDescriptor();
 
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		if(!rightDesc.equals("F")) {
 			switch(rightDesc) {
 				case "D":
-					mv.visitInsn(Opcodes.D2F);
+					stack.push(new InsnNode(Opcodes.D2F));
 					break;
 				case "I":
-					mv.visitInsn(Opcodes.I2F);
+					stack.push(new InsnNode(Opcodes.I2F));
 					break;
 				default:
 					throw new CompilerLogicException("Expected float, got " + Descriptors.descriptorToType(rightDesc),
@@ -662,26 +756,26 @@ public class OperationVisitor {
 
 		switch(type) {
 			case PLUS:
-				mv.visitInsn(Opcodes.FADD);
+				stack.push(new InsnNode(Opcodes.FADD));
 				context.setLastDescriptor("F");
 				break;
 
 			case MINUS:
-				mv.visitInsn(Opcodes.FSUB);
+				stack.push(new InsnNode(Opcodes.FSUB));
 				context.setLastDescriptor("F");
 				break;
 
 			case MULTIPLY:
-				mv.visitInsn(Opcodes.FMUL);
+				stack.push(new InsnNode(Opcodes.FMUL));
 				context.setLastDescriptor("F");
 				break;
 			case DIVIDE:
-				mv.visitInsn(Opcodes.FDIV);
+				stack.push(new InsnNode(Opcodes.FDIV));
 				context.setLastDescriptor("F");
 				break;
 
 			case MODULUS:
-				mv.visitInsn(Opcodes.FREM);
+				stack.push(new InsnNode(Opcodes.FREM));
 				context.setLastDescriptor("F");
 				break;
 				
@@ -691,19 +785,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFNE, falseL);
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -717,19 +811,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFEQ, falseL);
+				stack.push(new JumpNode(Opcodes.IFEQ, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -741,19 +835,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFGE, falseL);
+				stack.push(new JumpNode(Opcodes.IFGE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -764,19 +858,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFGT, falseL);
+				stack.push(new JumpNode(Opcodes.IFGT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -787,19 +881,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFLE, falseL);
+				stack.push(new JumpNode(Opcodes.IFLE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -810,19 +904,19 @@ public class OperationVisitor {
 				Label falseL = new Label();
 				Label end = new Label();
 				
-				mv.visitInsn(Opcodes.FCMPL);
+				stack.push(new InsnNode(Opcodes.FCMPL));
 				
-				mv.visitJumpInsn(Opcodes.IFLT, falseL);
+				stack.push(new JumpNode(Opcodes.IFLT, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -834,7 +928,7 @@ public class OperationVisitor {
 				LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
 				
 				context.setLastDescriptor("F");
-				mv.visitVarInsn(Opcodes.FSTORE, var.getIndex());
+				stack.push(new VarNode(Opcodes.FSTORE, var.getIndex()));
 				break;
 			}
 
@@ -849,7 +943,7 @@ public class OperationVisitor {
 	private void booleanOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
 			throws CompilerLogicException {
 
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 
 		switch(type) {
 
@@ -858,7 +952,7 @@ public class OperationVisitor {
 				Label notTrue = new Label();
 				Label endIf = new Label();
 
-				mv.visitJumpInsn(Opcodes.IFEQ, notTrue);
+				stack.push(new JumpNode(Opcodes.IFEQ, notTrue));
 
 				context.getCompilerInstance().visit(bon.getRight(), context);
 
@@ -874,17 +968,17 @@ public class OperationVisitor {
 							right.getStart(), right.getEnd());
 				}
 
-				mv.visitJumpInsn(Opcodes.IFEQ, notTrue);
+				stack.push(new JumpNode(Opcodes.IFEQ, notTrue));
 
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 
-				mv.visitJumpInsn(Opcodes.GOTO, endIf);
+				stack.push(new JumpNode(Opcodes.GOTO, endIf));
 
-				mv.visitLabel(notTrue);
+				stack.push(new LabelNode(notTrue));
 
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 
-				mv.visitLabel(endIf);
+				stack.push(new LabelNode(endIf));
 
 				break;
 			}
@@ -895,7 +989,7 @@ public class OperationVisitor {
 				Label notTrue = new Label();
 				Label endIf = new Label();
 
-				mv.visitJumpInsn(Opcodes.IFNE, isTrue);
+				stack.push(new JumpNode(Opcodes.IFNE, isTrue));
 
 				context.getCompilerInstance().visit(bon.getRight(), context);
 
@@ -908,19 +1002,19 @@ public class OperationVisitor {
 					throw new CompilerLogicException(rightDesc, right.getStart(), right.getEnd());
 				}
 
-				mv.visitJumpInsn(Opcodes.IFEQ, notTrue);
+				stack.push(new JumpNode(Opcodes.IFEQ, notTrue));
 
-				mv.visitLabel(isTrue);
+				stack.push(new LabelNode(isTrue));
 
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 
-				mv.visitJumpInsn(Opcodes.GOTO, endIf);
+				stack.push(new JumpNode(Opcodes.GOTO, endIf));
 
-				mv.visitLabel(notTrue);
+				stack.push(new LabelNode(notTrue));
 
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 
-				mv.visitLabel(endIf);
+				stack.push(new LabelNode(endIf));
 
 				break;
 			}
@@ -945,17 +1039,17 @@ public class OperationVisitor {
 							right.getStart(), right.getEnd());
 				}
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPNE, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -981,17 +1075,17 @@ public class OperationVisitor {
 							right.getStart(), right.getEnd());
 				}
 				
-				mv.visitJumpInsn(Opcodes.IF_ICMPEQ, falseL);
+				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_1);
+				stack.push(new InsnNode(Opcodes.ICONST_1));
 				
-				mv.visitJumpInsn(Opcodes.GOTO, end);
+				stack.push(new JumpNode(Opcodes.GOTO, end));
 				
-				mv.visitLabel(falseL);
+				stack.push(new LabelNode(falseL));
 				
-				mv.visitInsn(Opcodes.ICONST_0);
+				stack.push(new InsnNode(Opcodes.ICONST_0));
 				
-				mv.visitLabel(end);
+				stack.push(new LabelNode(end));
 				
 				context.setLastDescriptor("Z");
 				
@@ -1016,7 +1110,7 @@ public class OperationVisitor {
 							right.getStart(), right.getEnd());
 				}
 				
-				context.getVisitor().visitVarInsn(Opcodes.ISTORE, var.getIndex());
+				stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
 				break;
 			}
 			

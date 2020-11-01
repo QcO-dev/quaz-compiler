@@ -1,11 +1,14 @@
 package quaz.compiler.compiler.visitors;
 
 import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.Context;
+import quaz.compiler.compiler.opStack.OperationStack;
+import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.JumpNode;
+import quaz.compiler.compiler.opStack.nodes.LabelNode;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.block.ForNode;
@@ -40,22 +43,24 @@ public class BlockVisitor {
 			throw new CompilerLogicException("Expected boolean value.", in.getCondition().getStart(), in.getCondition().getEnd());
 		}
 		
-		context.getVisitor().visitJumpInsn(Opcodes.IFEQ, elseLabel);
+		OperationStack stack = context.getOpStack();
+		
+		stack.push(new JumpNode(Opcodes.IFEQ, elseLabel));
 		
 		Context bodyContext = context.copy();
 		
 		context.getCompilerInstance().visit(in.getBody(), bodyContext);
 		
 		if(in.getElseBody() != null) {
-			context.getVisitor().visitJumpInsn(Opcodes.GOTO, endIf);
+			stack.push(new JumpNode(Opcodes.GOTO, endIf));
 		}
 		
-		context.getVisitor().visitLabel(elseLabel);
+		stack.push(new LabelNode(elseLabel));
 		
 		if(in.getElseBody() != null) {
 			Context elseContext = context.copy();
 			context.getCompilerInstance().visit(in.getElseBody(), elseContext);
-			context.getVisitor().visitLabel(endIf);
+			stack.push(new LabelNode(endIf));
 		}
 		
 		context.setLastWasConstant(false);
@@ -69,15 +74,16 @@ public class BlockVisitor {
 		Label condition = new Label();
 		Label end = new Label();
 		
-		MethodVisitor mv = context.getVisitor();
 		
-		mv.visitLabel(condition);
+		OperationStack stack = context.getOpStack();
+		
+		stack.push(new LabelNode(condition));
 		
 		Context condContext = context.copy();
 		
 		context.getCompilerInstance().visit(wn.getCondition(), condContext);
 		
-		mv.visitJumpInsn(Opcodes.IFEQ, end);
+		stack.push(new JumpNode(Opcodes.IFEQ, end));
 		
 		context.setLoop(true);
 		context.setLoopCondition(condition);
@@ -89,9 +95,9 @@ public class BlockVisitor {
 		
 		whileContext.setLoop(false);
 		
-		mv.visitJumpInsn(Opcodes.GOTO, condition);
+		stack.push(new JumpNode(Opcodes.GOTO, condition));
 		
-		mv.visitLabel(end);
+		stack.push(new LabelNode(end));
 		
 		context.setLastWasConstant(false);
 		
@@ -104,17 +110,17 @@ public class BlockVisitor {
 		Label condition = new Label();
 		Label end = new Label();
 		
-		MethodVisitor mv = context.getVisitor();
+		OperationStack stack = context.getOpStack();
 		
 		Context forContext = context.copy();
 		
 		forContext.getCompilerInstance().visit(fn.getInit(), forContext);
 		
-		mv.visitLabel(condition);
+		stack.push(new LabelNode(condition));
 		
 		forContext.getCompilerInstance().visit(fn.getCondition(), forContext);
 		
-		mv.visitJumpInsn(Opcodes.IFEQ, end);
+		stack.push(new JumpNode(Opcodes.IFEQ, end));
 		
 		context.setLoop(true);
 		context.setLoopCondition(condition);
@@ -126,16 +132,16 @@ public class BlockVisitor {
 		
 		context.setLoop(false);
 		
-		mv.visitJumpInsn(Opcodes.GOTO, condition);
+		stack.push(new JumpNode(Opcodes.GOTO, condition));
 		
-		mv.visitLabel(end);
+		stack.push(new LabelNode(end));
 		
 		context.setLastWasConstant(false);
 		
 	}
 	
 	public void visitPassNode(Node node, Context context) {
-		context.getVisitor().visitInsn(Opcodes.NOP);
+		context.getOpStack().push(new InsnNode(Opcodes.NOP));
 		context.setLastWasConstant(false);
 	}
 	
@@ -145,7 +151,7 @@ public class BlockVisitor {
 			throw new CompilerLogicException("Break statements can only be used inside of a loop.", node.getStart(), node.getEnd());
 		}
 		
-		context.getVisitor().visitJumpInsn(Opcodes.GOTO, context.getLoopEnd());
+		context.getOpStack().push(new JumpNode(Opcodes.GOTO, context.getLoopEnd()));
 		context.setLastWasConstant(false);
 	}
 
@@ -155,7 +161,7 @@ public class BlockVisitor {
 			throw new CompilerLogicException("Continue statements can only be used inside of a loop.", node.getStart(), node.getEnd());
 		}
 		
-		context.getVisitor().visitJumpInsn(Opcodes.GOTO, context.getLoopCondition());
+		context.getOpStack().push(new JumpNode(Opcodes.GOTO, context.getLoopCondition()));
 		context.setLastWasConstant(false);
 		
 	}

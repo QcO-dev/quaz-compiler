@@ -40,7 +40,7 @@ Unary operations `-, +, !, ~` are planned, as when as binary operation `**`.
 Operator Overloading will also be implemented, and is currently supported for the == and != operator, which calls the object's `equals` method. Use `===` and `!==` operators for the java style of equal operators.
 
 # Builtin Functions
-Found within Quaz STL
+Found within [Quaz STL](https://github.com/QcO-dev/quaz-stl)
 - println
   Alias for `System.out#println(args)` Will have other ways to call in further development.
 - input

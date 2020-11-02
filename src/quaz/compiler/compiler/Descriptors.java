@@ -212,4 +212,14 @@ public class Descriptors {
 		
 	}
 	
+	public static boolean isWide(String descriptor) {
+		switch(descriptor) {
+			case "D":
+			case "J":
+				return true;
+			default:
+				return false;
+		}
+	}
+	
 }

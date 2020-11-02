@@ -9,7 +9,7 @@ import org.objectweb.asm.Label;
 import quaz.compiler.compiler.opStack.OperationStack;
 import quaz.compiler.compiler.values.Function;
 import quaz.compiler.compiler.values.FunctionList;
-import quaz.compiler.compiler.values.LocalVariable;
+import quaz.compiler.compiler.values.LocalVariables;
 import quaz.compiler.standardLibrary.Pair;
 import quaz.compiler.standardLibrary.StandardLibrary;
 
@@ -28,7 +28,7 @@ public class Context {
 	private Label loopCondition;
 	
 	private final FunctionList functions;
-	private final Map<String, LocalVariable> localVariables;
+	private final LocalVariables localVariables;
 	private final Map<String, String> typeReferences;
 	private final String name;
 	
@@ -38,7 +38,7 @@ public class Context {
 		this.writer = writer;
 		this.name = name;
 		functions = new FunctionList();
-		localVariables = new HashMap<>();
+		localVariables = new LocalVariables();
 		typeReferences = new HashMap<>();
 		
 		for(Pair<?, ?> p : StandardLibrary.STATIC_IMPORTS) {
@@ -47,7 +47,7 @@ public class Context {
 			
 			functions.put(f.getName(), desc, f);
 		}
-			
+		
 		for(Pair<?, ?> p : StandardLibrary.TYPE_REFERENCES)
 			typeReferences.put((String)p.getFirst(), (String)p.getSecond());
 		
@@ -63,7 +63,7 @@ public class Context {
 	 * @param locals Copied value
 	 */
 	
-	private Context(Compiler compilerInstance, ClassWriter writer, OperationStack opStack, String name, FunctionList functions, HashMap<String, LocalVariable> locals, Map<String, String> typeReferences, String methodReturnType, boolean hasReturnedLast, boolean isLoop, Label loopCondition, Label loopEnd, boolean lastWasConstant) {
+	private Context(Compiler compilerInstance, ClassWriter writer, OperationStack opStack, String name, FunctionList functions, LocalVariables locals, Map<String, String> typeReferences, String methodReturnType, boolean hasReturnedLast, boolean isLoop, Label loopCondition, Label loopEnd, boolean lastWasConstant) {
 		this.compilerInstance = compilerInstance;
 		this.writer = writer;
 		this.name = name;
@@ -111,7 +111,7 @@ public class Context {
 		return name;
 	}
 
-	public Map<String, LocalVariable> getLocalVariables() {
+	public LocalVariables getLocalVariables() {
 		return localVariables;
 	}
 	
@@ -128,7 +128,7 @@ public class Context {
 	}
 
 	public Context copy() {
-		return new Context(compilerInstance, writer, opStack, name, functions, new HashMap<String, LocalVariable>(localVariables), typeReferences, methodReturnType, hasReturnedLast, isLoop, loopCondition, loopEnd, lastWasConstant);
+		return new Context(compilerInstance, writer, opStack, name, functions, new LocalVariables(localVariables), typeReferences, methodReturnType, hasReturnedLast, isLoop, loopCondition, loopEnd, lastWasConstant);
 	}
 
 	public String getMethodReturnType() {

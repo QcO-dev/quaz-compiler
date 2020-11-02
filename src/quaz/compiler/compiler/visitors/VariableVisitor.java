@@ -1,7 +1,5 @@
 package quaz.compiler.compiler.visitors;
 
-import java.util.Map;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -15,6 +13,7 @@ import quaz.compiler.compiler.opStack.nodes.MethodNode;
 import quaz.compiler.compiler.opStack.nodes.TypeNode;
 import quaz.compiler.compiler.opStack.nodes.VarNode;
 import quaz.compiler.compiler.values.LocalVariable;
+import quaz.compiler.compiler.values.LocalVariables;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.parser.nodes.Node;
@@ -31,17 +30,21 @@ public class VariableVisitor {
 
 		OperationStack stack = context.getOpStack();
 		
-		Map<String, LocalVariable> locals = context.getLocalVariables();
-
-		int index = locals.size();
-
+		LocalVariables locals = context.getLocalVariables();
+		
+		//int index = locals.getNextIndex();
+		
 		if(vdn.isExplicit()) {
 			if(vdn.isKeyword()) {
 
 				String descriptor = Descriptors.typeToDescriptor(vdn.getTypeName());
+				
+				locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), true));
 
-				locals.put(name, new LocalVariable(name, descriptor, index, true));
-
+				if(Descriptors.isWide(descriptor)) {
+					locals.incrementIndex();
+				}
+				
 				// Writes the correct bytecode to get the value
 				if(vdn.isDefault()) {
 
@@ -83,7 +86,7 @@ public class VariableVisitor {
 				stack.push(new LabelNode(l0));
 				stack.push(new LineNumberNode(vdn.getStart().getLine(), l0));
 
-				generatePrimativeStoreValue(vdn.getTypeName(), index, stack);
+				generatePrimativeStoreValue(vdn.getTypeName(), locals.getNextIndex(), stack);
 
 				context.setLastDescriptor(descriptor);
 
@@ -123,9 +126,9 @@ public class VariableVisitor {
 				Label l1 = new Label();
 				stack.push(new LabelNode(l1));
 				stack.push(new LineNumberNode(vdn.getStart().getLine(), l1));
-				stack.push(new VarNode(Opcodes.ASTORE, index));
+				stack.push(new VarNode(Opcodes.ASTORE, locals.getNextIndex()));
 
-				locals.put(name, new LocalVariable(name, "L" + type + ";", index, false));
+				locals.put(name, new LocalVariable(name, "L" + type + ";", locals.getNextIndex(), false));
 
 				context.setLastDescriptor(type);
 
@@ -143,9 +146,9 @@ public class VariableVisitor {
 				Label l1 = new Label();
 				stack.push(new LabelNode(l1));
 				stack.push(new LineNumberNode(vdn.getStart().getLine(), l1));
-				stack.push(new VarNode(Opcodes.ASTORE, index));
+				stack.push(new VarNode(Opcodes.ASTORE, locals.getNextIndex()));
 
-				locals.put(name, new LocalVariable(name, "Ljava/lang/Object;", index, false));
+				locals.put(name, new LocalVariable(name, "Ljava/lang/Object;", locals.getNextIndex(), false));
 
 				context.setLastDescriptor("java/lang/Object");
 
@@ -164,22 +167,27 @@ public class VariableVisitor {
 					stack.push(new LabelNode(l0));
 					stack.push(new LineNumberNode(vdn.getStart().getLine(), l0));
 					
-					generatePrimativeStoreValue(type, index, stack);
+					generatePrimativeStoreValue(type, locals.getNextIndex(), stack);
 					
-					locals.put(name, new LocalVariable(name, descriptor, index, true));
+					locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), true));
+					if(Descriptors.isWide(descriptor)) {
+						locals.incrementIndex();
+					}
 				} else {
 					Label l0 = new Label();
 					stack.push(new LabelNode(l0));
 					stack.push(new LineNumberNode(vdn.getStart().getLine(), l0));
-					stack.push(new VarNode(Opcodes.ASTORE, index));
+					stack.push(new VarNode(Opcodes.ASTORE, locals.getNextIndex()));
 					
-					locals.put(name, new LocalVariable(name, descriptor, index, false));
+					locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), false));
 				}
 				
 				context.setLastDescriptor(descriptor);
 			}
 
 		}
+		
+		locals.incrementIndex();
 		
 		context.setLastWasConstant(false);
 

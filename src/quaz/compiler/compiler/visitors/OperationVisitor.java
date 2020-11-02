@@ -1,13 +1,9 @@
 package quaz.compiler.compiler.visitors;
 
-import java.util.ArrayList;
-import java.util.Collections;
-
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
 import quaz.compiler.compiler.opStack.OperationStack;
@@ -70,19 +66,19 @@ public class OperationVisitor {
 			
 			leftDesc = context.getLastDescriptor();
 		}
-
+		
 		switch(leftDesc) {
 			case "I":
-				intOperation(bon, bon.getType(), bon.getRight(), context);
+				intOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			case "D":
-				doubleOperation(bon, bon.getType(), bon.getRight(), context);
+				doubleOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			case "F":
-				floatOperation(bon, bon.getType(), bon.getRight(), context);
+				floatOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			case "Z":
-				booleanOperation(bon, bon.getType(), bon.getRight(), context);
+				booleanOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			default:
 				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
@@ -93,10 +89,6 @@ public class OperationVisitor {
 
 	private void refOperation(String leftDesc, BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
-		context.getCompilerInstance().visit(bon.getRight(), context);
-
-		String rightDesc = context.getLastDescriptor();
-		
 		//MethodVisitor mv = context.getVisitor();
 		
 		OperationStack stack = context.getOpStack();
@@ -110,6 +102,10 @@ public class OperationVisitor {
 					break;
 			}
 		}
+		
+		context.getCompilerInstance().visit(bon.getRight(), context);
+
+		String rightDesc = context.getLastDescriptor();
 		
 		if(!rightDesc.equals(leftDesc)) {
 			throw new CompilerLogicException("Expected " + Descriptors.descriptorToType(leftDesc) + ", got "
@@ -199,106 +195,111 @@ public class OperationVisitor {
 		
 		context.setLastWasConstant(false);
 		
-		//context.setLastDescriptor(leftDesc);
 	}
 	
 	private void concatStrings(BinaryOperationNode bon, OperationStack stack, int addedElements, Context context) throws CompilerLogicException {
-		if(addedElements != 0)
-			for(int i = 0; i <= addedElements; i++) {
+		if(addedElements != 0) {
+			for(int i = 0; i < addedElements; i++) {
 				stack.pop();
 			}
+		}
 		
-		Node rightAdd = bon;
+		StringBuilder descriptor = new StringBuilder("(");
+		StringBuilder recipe = new StringBuilder();
 		
-		ArrayList<Object> descriptorList = new ArrayList<>();
-		ArrayList<Object> recipeList = new ArrayList<>();
+		genStringConcatSingle(bon, context, stack, recipe, descriptor);
 		
-		Compiler ci = context.getCompilerInstance();
+		descriptor.append(")Ljava/lang/String;");
 		
-		while(rightAdd instanceof BinaryOperationNode && ((BinaryOperationNode) rightAdd).getType() == TokenType.PLUS) {
+		stack.push(new InvokeDynamicNode("makeConcatWithConstants", descriptor.toString(), new Handle(Opcodes.H_INVOKESTATIC, 
+				"java/lang/invoke/StringConcatFactory", 
+				"makeConcatWithConstants", 
+				"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
+				false), 
+			new Object[] {recipe.toString()}));
+	
+		context.setLastDescriptor("Ljava/lang/String;");
+	}
+	
+	private void genStringConcatSingle(BinaryOperationNode bon, Context context, OperationStack stack, StringBuilder recipe, StringBuilder descriptor) throws CompilerLogicException {
+		Node left = bon.getLeft();
+		if(left instanceof BinaryOperationNode && ((BinaryOperationNode) left).getType() == TokenType.PLUS) {
+			genStringConcatSingle((BinaryOperationNode) left, context, stack, recipe, descriptor);
+		}
+		
+		else {
 			
-			
-			ci.visit(((BinaryOperationNode) rightAdd).getRight(), context);
+			context.getCompilerInstance().visit(left, context);
 			
 			if(context.getLastWasConstant()) {
 				
+				//System.out.println(stack.peek());
 				OpNode oNode = stack.pop();
 				
 				if(oNode instanceof InsnNode) {
-					recipeList.add(((InsnNode) oNode).getValue());
+					
+					if(context.getLastDescriptor().equals("Z")) {
+						
+						if(oNode.getOpcode() == Opcodes.ICONST_0) {
+							recipe.append("false");
+						}
+						else {
+							recipe.append("true");
+						}
+						
+					}
+					else {
+						recipe.append(((InsnNode) oNode).getValue());
+					}
 				}
 				else if(oNode instanceof IntInsnNode) {
-					recipeList.add(((IntInsnNode) oNode).getValue());
+					recipe.append(((IntInsnNode) oNode).getValue());
 				}
 				else if(oNode instanceof LdcNode) {
-					recipeList.add(((LdcNode) oNode).getValue());
+					recipe.append(((LdcNode) oNode).getValue());
 				}
 				else {
 					// Shouldn't happen, handle just in case something went very wrong
-					throw new CompilerLogicException("Unexpected constant value.", ((BinaryOperationNode) rightAdd).getLeft().getStart(), ((BinaryOperationNode) rightAdd).getLeft().getEnd());
+					throw new CompilerLogicException("Unexpected constant value.", left.getStart(), left.getEnd());
 				}
 				
 			}
 			else {
-				descriptorList.add(context.getLastDescriptor());
-				recipeList.add("\u0001");
+				descriptor.append(context.getLastDescriptor());
+				recipe.append("\u0001");
 			}
-			
-			rightAdd = ((BinaryOperationNode) rightAdd).getLeft();
 			
 		}
 		
-		ci.visit(rightAdd, context);
+		context.getCompilerInstance().visit(bon.getRight(), context);
 		
 		if(context.getLastWasConstant()) {
 			
 			OpNode oNode = stack.pop();
 			
 			if(oNode instanceof InsnNode) {
-				recipeList.add(((InsnNode) oNode).getValue());
+				recipe.append(((InsnNode) oNode).getValue());
 			}
 			else if(oNode instanceof IntInsnNode) {
-				recipeList.add(((IntInsnNode) oNode).getValue());
+				recipe.append(((IntInsnNode) oNode).getValue());
 			}
 			else if(oNode instanceof LdcNode) {
-				recipeList.add(((LdcNode) oNode).getValue());
+				recipe.append(((LdcNode) oNode).getValue());
 			}
 			else {
 				// Shouldn't happen, handle just in case something went very wrong
-				throw new CompilerLogicException("Unexpected constant value.", rightAdd.getStart(), rightAdd.getEnd());
+				throw new CompilerLogicException("Unexpected constant value.", left.getStart(), left.getEnd());
 			}
 			
 		}
 		else {
-			descriptorList.add(context.getLastDescriptor());
-			recipeList.add("\u0001");
+			descriptor.append(context.getLastDescriptor());
+			recipe.append("\u0001");
 		}
 		
-		//descriptorList.add(")Ljava/lang/String;");
-		
-		Collections.reverse(descriptorList);
-		Collections.reverse(recipeList);
-		
-		StringBuilder descriptor = new StringBuilder("(");
-		StringBuilder recipe = new StringBuilder();
-		
-		descriptorList.forEach(descriptor::append);
-		recipeList.forEach(recipe::append);
-		
-		descriptor.append(")Ljava/lang/String;");
-		
-		
-		stack.push(new InvokeDynamicNode("makeConcatWithConstants", descriptor.toString(), new Handle(Opcodes.H_INVOKESTATIC, 
-					"java/lang/invoke/StringConcatFactory", 
-					"makeConcatWithConstants", 
-					"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
-					false), 
-				new Object[] {recipe.toString()}));
-		
-		context.setLastDescriptor("Ljava/lang/String;");
 	}
 	
-	private void intOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
+	private void intOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 
 		context.getCompilerInstance().visit(bon.getRight(), context);
@@ -318,6 +319,14 @@ public class OperationVisitor {
 					break;
 				case "Z":
 					break;
+					
+				case "Ljava/lang/String;": {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+					
 
 				default:
 					throw new CompilerLogicException("Expected int, got " + Descriptors.descriptorToType(rightDesc),
@@ -522,7 +531,7 @@ public class OperationVisitor {
 		context.setLastWasConstant(false);
 	}
 
-	private void doubleOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
+	private void doubleOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 
 		context.getCompilerInstance().visit(bon.getRight(), context);
@@ -539,6 +548,14 @@ public class OperationVisitor {
 				case "F":
 					stack.push(new InsnNode(Opcodes.F2D));
 					break;
+					
+				case "Ljava/lang/String;": {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+					
 				default:
 					throw new CompilerLogicException("Expected double, got " + Descriptors.descriptorToType(rightDesc),
 							right.getStart(), right.getEnd());
@@ -731,7 +748,7 @@ public class OperationVisitor {
 
 	}
 
-	private void floatOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
+	private void floatOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 
 		context.getCompilerInstance().visit(bon.getRight(), context);
@@ -748,6 +765,14 @@ public class OperationVisitor {
 				case "I":
 					stack.push(new InsnNode(Opcodes.I2F));
 					break;
+				
+				case "Ljava/lang/String;": {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+					
 				default:
 					throw new CompilerLogicException("Expected float, got " + Descriptors.descriptorToType(rightDesc),
 							right.getStart(), right.getEnd());
@@ -940,13 +965,30 @@ public class OperationVisitor {
 
 	}
 
-	private void booleanOperation(BinaryOperationNode bon, TokenType type, Node right, Context context)
+	private void booleanOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 
 		OperationStack stack = context.getOpStack();
 
 		switch(type) {
+			
+			case PLUS: {
+				
+				context.getCompilerInstance().visit(bon.getRight(), context);
 
+				String rightDesc = context.getLastDescriptor();
+				
+				if(rightDesc.equals("Ljava/lang/String;")) {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+				
+				throw new CompilerLogicException("Invalid Operation" + Descriptors.descriptorToType(rightDesc),
+						right.getStart(), right.getEnd());
+			}
+			
 			case AND: {
 
 				Label notTrue = new Label();

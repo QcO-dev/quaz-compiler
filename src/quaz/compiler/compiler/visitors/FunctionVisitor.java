@@ -16,6 +16,7 @@ import quaz.compiler.compiler.opStack.nodes.LineNumberNode;
 import quaz.compiler.compiler.opStack.nodes.MethodNode;
 import quaz.compiler.compiler.values.Function;
 import quaz.compiler.compiler.values.LocalVariable;
+import quaz.compiler.compiler.values.LocalVariables;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.parser.nodes.Node;
@@ -39,7 +40,7 @@ public class FunctionVisitor implements Opcodes {
 		
 		Context copy = context.copy();
 		
-		int index = 0;
+		LocalVariables lvs = context.getLocalVariables();
 		
 		for(Pair<Token, String> var : pln.getVars()) {
 			String typeGiven = var.getSecond();
@@ -56,8 +57,12 @@ public class FunctionVisitor implements Opcodes {
 			
 			descriptor += desc;
 			
-			copy.getLocalVariables().put(var.getFirst().getValue(), new LocalVariable(var.getFirst().getValue(), desc, index, Descriptors.isPrimative(desc)));
-			index++;
+			if(Descriptors.isWide(desc)) {
+				lvs.incrementIndex();
+			}
+			
+			copy.getLocalVariables().put(var.getFirst().getValue(), new LocalVariable(var.getFirst().getValue(), desc, lvs.getNextIndex(), Descriptors.isPrimative(desc)));
+			lvs.incrementIndex();
 		}
 		
 		Function function = context.getFunctions().get(name, descriptor);

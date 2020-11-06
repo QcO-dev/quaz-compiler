@@ -8,17 +8,20 @@ public class QuazException extends Exception {
 	private Position start;
 	private Position end;
 	private String message;
+	private final int code;
 	
-	public QuazException(String message, Position pos) {
+	public QuazException(String message, Position pos, int code) {
 		this.message = message;
 		start = pos;
 		end = pos;
+		this.code = code;
 	}
 	
-	public QuazException(String message, Position start, Position end) {
+	public QuazException(String message, Position start, Position end, int code) {
 		this.message = message;
 		this.start = start;
 		this.end = end;
+		this.code = code;
 	}
 	
 	@Override
@@ -38,6 +41,10 @@ public class QuazException extends Exception {
 				+ ": \n"
 				+ message;
 		
+	}
+
+	public int getCode() {
+		return code;
 	}
 	
 }

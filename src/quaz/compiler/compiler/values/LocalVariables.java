@@ -9,6 +9,7 @@ public class LocalVariables extends HashMap<String, LocalVariable> {
 	
 	public LocalVariables(LocalVariables lv) {
 		super(lv);
+		this.nextIndex = lv.getNextIndex();
 	}
 	
 	private int nextIndex = 0;

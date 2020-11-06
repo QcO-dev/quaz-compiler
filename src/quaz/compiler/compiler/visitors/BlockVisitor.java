@@ -112,6 +112,12 @@ public class BlockVisitor {
 		
 		OperationStack stack = context.getOpStack();
 		
+		boolean wasLoop = context.isLoop();
+		
+		context.setLoop(true);
+		context.setLoopCondition(condition);
+		context.setLoopEnd(end);
+		
 		Context forContext = context.copy();
 		
 		forContext.getCompilerInstance().visit(fn.getInit(), forContext);
@@ -122,15 +128,11 @@ public class BlockVisitor {
 		
 		stack.push(new JumpNode(Opcodes.IFEQ, end));
 		
-		context.setLoop(true);
-		context.setLoopCondition(condition);
-		context.setLoopEnd(end);
-		
 		forContext.getCompilerInstance().visit(fn.getBody(), forContext);
 		
 		forContext.getCompilerInstance().visit(fn.getIncrement(), forContext);
 		
-		context.setLoop(false);
+		context.setLoop(wasLoop);
 		
 		stack.push(new JumpNode(Opcodes.GOTO, condition));
 		

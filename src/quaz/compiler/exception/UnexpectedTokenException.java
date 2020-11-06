@@ -8,12 +8,12 @@ public class UnexpectedTokenException extends QuazException {
 	
 	public UnexpectedTokenException(String message, Token token) {
 		
-		super(message, token.getStart(), token.getEnd());
+		super(message, token.getStart(), token.getEnd(), 0xFF810000 | 't');
 		
 	}
 	
 	public UnexpectedTokenException(String message, Position start, Position end) {
-		super(message, start, end);
+		super(message, start, end, 0xFF810000 | 't');
 	}
 	
 	

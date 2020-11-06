@@ -44,7 +44,7 @@ Operator Overloading will also be implemented, and is currently supported for th
 
 # Builtin Functions
 Found within [Quaz STL](https://github.com/QcO-dev/quaz-stl)
-- println
+- println  
   Alias for `System.out#println(args)` Will have other ways to call in further development.
-- input
+- input  
   Executes `System.out#print(args)` and then `Scanner#nextLine()` and returns this value.

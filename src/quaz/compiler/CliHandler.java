@@ -72,14 +72,12 @@ public class CliHandler {
 	@Default
 	public String[] args;
 
-	private final static int ERROR_CODE = 0x20510000;
-
 	@MainMethod
 	public void main() {
 
 		if(args.length == 0) {
 			System.err.println("Missing file argument");
-			System.exit(ERROR_CODE);
+			System.exit(-1);
 		}
 		
 		Config.buildDefaults();
@@ -91,7 +89,7 @@ public class CliHandler {
 				Config.setIniFile(ini);
 			} catch(IOException e) {
 				System.err.println("Could not open file: " + configFile);
-				System.exit(ERROR_CODE + 10);
+				System.exit(-1);
 			}
 
 		}
@@ -103,8 +101,6 @@ public class CliHandler {
 
 		Token.buildArrays();
 
-		// TODO Make system.exit calls return values as to not break the compilation
-		// (maybe)
 		if(!async) {
 			for(String filename : args) {
 				compile(filename);
@@ -123,12 +119,12 @@ public class CliHandler {
 
 			if(!f.exists()) {
 				System.err.println("File does not exist: " + filename);
-				System.exit(ERROR_CODE + 1);
+				System.exit(-1);
 			}
 
 			if(f.isDirectory()) {
 				System.err.println("File is a directory: " + filename);
-				System.exit(ERROR_CODE + 2);
+				System.exit(-1);
 			}
 
 			// Lex, parse and compile source code.
@@ -185,30 +181,12 @@ public class CliHandler {
 				stream.write(bytes);
 			}
 
-		} catch(FileNotFoundException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 1);
 		} catch(IOException e) {
 			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 3);
-		} catch(InvalidCharacterException e) {
+			System.exit(-1);
+		} catch(CompilerLogicException | UnexpectedTokenException | InvalidCharacterException | IndentionLevelException | InvalidEscapeException | InvalidNumberException e) {
 			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 4);
-		} catch(IndentionLevelException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 5);
-		} catch(InvalidEscapeException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 6);
-		} catch(InvalidNumberException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 7);
-		} catch(UnexpectedTokenException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 8);
-		} catch(CompilerLogicException e) {
-			System.err.println(e.toString());
-			System.exit(ERROR_CODE + 9);
+			System.exit(e.getCode());
 		}
 
 	}

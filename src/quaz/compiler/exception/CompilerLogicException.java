@@ -7,7 +7,7 @@ public class CompilerLogicException extends QuazException {
 	private static final long serialVersionUID = -1904195409614139286L;
 
 	public CompilerLogicException(String message, Position start, Position end) {
-		super(message, start, end);
+		super(message, start, end, 0xFF810000 | 'c');
 	}
 	
 	

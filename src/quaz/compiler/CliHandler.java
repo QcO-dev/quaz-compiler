@@ -2,7 +2,6 @@ package quaz.compiler;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,12 +14,7 @@ import com.datumware.cli.MainMethod;
 import com.datumware.cli.Option;
 
 import quaz.compiler.compiler.Compiler;
-import quaz.compiler.exception.CompilerLogicException;
-import quaz.compiler.exception.IndentionLevelException;
-import quaz.compiler.exception.InvalidCharacterException;
-import quaz.compiler.exception.InvalidEscapeException;
-import quaz.compiler.exception.InvalidNumberException;
-import quaz.compiler.exception.UnexpectedTokenException;
+import quaz.compiler.exception.QuazException;
 import quaz.compiler.lexer.Lexer;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.parser.Parser;
@@ -184,7 +178,7 @@ public class CliHandler {
 		} catch(IOException e) {
 			System.err.println(e.toString());
 			System.exit(-1);
-		} catch(CompilerLogicException | UnexpectedTokenException | InvalidCharacterException | IndentionLevelException | InvalidEscapeException | InvalidNumberException e) {
+		} catch(QuazException e) {
 			System.err.println(e.toString());
 			System.exit(e.getCode());
 		}

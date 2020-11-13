@@ -9,6 +9,7 @@ import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
 import quaz.compiler.compiler.opStack.nodes.LdcNode;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.value.BooleanNode;
+import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
@@ -151,6 +152,56 @@ public class ValueVisitor {
 		
 		context.setLastDescriptor("Z");
 		context.setLastWasConstant(true);
+	}
+	
+	public void visitCharNode(Node node, Context context) {
+		
+		CharNode cn = (CharNode) node;
+		
+		int val = cn.getVal();
+		
+		OperationStack stack = context.getOpStack();
+		
+		if(val <= 5) {
+			
+			switch(val) {
+				case 0:
+					stack.push(new InsnNode(Opcodes.ICONST_0));
+					break;
+				case 1:
+					stack.push(new InsnNode(Opcodes.ICONST_1));
+					break;
+				case 2:
+					stack.push(new InsnNode(Opcodes.ICONST_2));
+					break;
+				case 3:
+					stack.push(new InsnNode(Opcodes.ICONST_3));
+					break;
+				case 4:
+					stack.push(new InsnNode(Opcodes.ICONST_4));
+					break;
+				case 5:
+					stack.push(new InsnNode(Opcodes.ICONST_5));
+					break;
+			}
+			
+		}
+		
+		else if(val < 256) {
+			stack.push(new IntInsnNode(Opcodes.BIPUSH, val));
+		}
+		
+		else if(val < 65536) {
+			stack.push(new IntInsnNode(Opcodes.SIPUSH, val));
+		}
+		
+		else {
+			stack.push(new LdcNode(val));
+		}
+		
+		context.setLastDescriptor("C");
+		context.setLastWasConstant(true);
+		
 	}
 	
 }

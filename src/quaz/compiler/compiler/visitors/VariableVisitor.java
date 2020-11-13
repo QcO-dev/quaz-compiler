@@ -52,6 +52,9 @@ public class VariableVisitor {
 						case "int":
 							stack.push(new InsnNode(Opcodes.ICONST_0));
 							break;
+						case "char":
+							stack.push(new InsnNode(Opcodes.ICONST_0)); // Null byte
+							break;
 						case "double":
 							stack.push(new InsnNode(Opcodes.DCONST_0));
 							break;
@@ -198,6 +201,9 @@ public class VariableVisitor {
 			case "int":
 				stack.push(new VarNode(Opcodes.ISTORE, index));
 				break;
+			case "char":
+				stack.push(new VarNode(Opcodes.ISTORE, index));
+				break;
 			case "double":
 				stack.push(new VarNode(Opcodes.DSTORE, index));
 				break;
@@ -232,6 +238,10 @@ public class VariableVisitor {
 			case "I":
 				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
 				context.setLastDescriptor("I");
+				break;
+			case "C":
+				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
+				context.setLastDescriptor("C");
 				break;
 			case "D":
 				stack.push(new VarNode(Opcodes.DLOAD, var.getIndex()));

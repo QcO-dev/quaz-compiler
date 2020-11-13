@@ -15,4 +15,6 @@ public class ValueVisitor {
 	
 	public void visitBooleanNode(Node node, Context context) {}
 	
+	public void visitCharNode(Node node, Context context) {}
+	
 }

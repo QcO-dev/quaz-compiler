@@ -151,6 +151,10 @@ public class Lexer {
 				tokens.add(number());
 			}
 			
+			else if(currentChar.equals("'")) {
+				tokens.add(character());
+			}
+			
 			else {
 				throw new InvalidCharacterException("Unexpected Character: \'" + currentChar + "\'", new Position(column, line, file));
 			}
@@ -596,6 +600,82 @@ public class Lexer {
 		
 		return new Token(TokenType.STRING, value, start, new Position(column, line, file));
 		
+	}
+	
+	private Token character() throws InvalidEscapeException, InvalidCharacterException {
+		Position start = new Position(column, line, file);
+		
+		String value = "";
+		
+		advance();
+		
+		boolean escape = false;
+		
+		int length = 0;
+		
+		while(currentChar != null && ( escape || !currentChar.equals("'"))) {
+			
+			if(length > 1) {
+				throw new InvalidCharacterException("Character must only be one character.", new Position(column, line, file));
+			}
+			
+			if(currentChar.equals("\\")) {
+				escape = true;
+				advance();
+				continue;
+			}
+			
+			if(escape) {
+				
+				escape = false;
+				
+				switch(currentChar) {
+					case "\\":
+						value += "\\";
+						break;
+					case "b":
+						value += "\b";
+						break;
+					case "n":
+						value += "\n";
+						break;
+					case "t":
+						value += "\t";
+						break;
+					case "r":
+						value += "\r";
+						break;
+					case "f":
+						value += "\f";
+						break;
+					case "\"":
+						value += "\"";
+						break;
+					default:
+						throw new InvalidEscapeException("Unknown Escape Character: \'\\" + currentChar + "\'.", new Position(column, line, file));
+				}
+				advance();
+				length++;
+				continue;
+			}
+			
+			value += currentChar;
+			
+			length++;
+			
+			advance();
+			
+		}
+		
+		if(length > 1) {
+			throw new InvalidCharacterException("Character must only be one character.", new Position(column, line, file));
+		}
+		
+		if(length == 0) {
+			throw new InvalidCharacterException("Character must be at least one character.", new Position(column, line, file));
+		}
+
+		return new Token(TokenType.CHAR, value, start, new Position(column, line, file));
 	}
 	
 }

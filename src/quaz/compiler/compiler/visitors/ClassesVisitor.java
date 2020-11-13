@@ -368,6 +368,36 @@ public class ClassesVisitor {
 							throw new CompilerLogicException("Cannot cast from int to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
 					}
 					break;
+					
+				case "C":
+					switch(desc) {
+						case "C":
+							break;
+						case "I":
+							context.setLastDescriptor("I");
+							break;
+						case "D":
+							stack.push(new InsnNode(Opcodes.I2D));
+							context.setLastDescriptor("D");
+							break;
+						case "F":
+							stack.push(new InsnNode(Opcodes.I2F));
+							context.setLastDescriptor("F");
+							break;
+						case "Z":
+							context.setLastDescriptor("Z");
+							break;
+						
+						case "Ljava/lang/String;": {
+							stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Character", "toString", "(C)Ljava/lang/String;", false));
+							context.setLastDescriptor("Ljava/lang/String;");
+							break;
+						}
+						default:
+							throw new CompilerLogicException("Cannot cast from char to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
+					}
+					break;	
+				
 				case "D":
 					switch(desc) {
 						case "D":
@@ -444,6 +474,13 @@ public class ClassesVisitor {
 					case "I": {
 						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Integer", "parseInt", "(Ljava/lang/String;)I", false));
 						context.setLastDescriptor("I");
+						context.setLastWasConstant(false);
+						return;
+					}
+					case "C": {
+						stack.push(new InsnNode(Opcodes.ICONST_0));
+						stack.push(new MethodNode(Opcodes.INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false));
+						context.setLastDescriptor("C");
 						context.setLastWasConstant(false);
 						return;
 					}

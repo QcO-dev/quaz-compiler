@@ -14,6 +14,7 @@ public class Descriptors {
 			case "F":
 			case "Z":
 			case "V":
+			case "C":
 				return true;
 			
 			default:
@@ -31,6 +32,7 @@ public class Descriptors {
 			case "float":
 			case "boolean":
 			case "void":
+			case "char":
 				return true;
 			
 			default:
@@ -48,6 +50,7 @@ public class Descriptors {
 			case "D": type = "double"; break;
 			case "F": type = "float"; break;
 			case "Z": type = "boolean"; break;
+			case "C": type = "char"; break;
 			default:
 				if(descriptor.startsWith("[")) {
 					type = descriptorToType(descriptor.substring(1)) + "[]";
@@ -72,6 +75,7 @@ public class Descriptors {
 			case "float": descriptor = "F"; break;
 			case "boolean": descriptor = "Z"; break;
 			case "void": descriptor = "V"; break;
+			case "char": descriptor = "C"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -95,6 +99,7 @@ public class Descriptors {
 			case "float": descriptor = "F"; break;
 			case "boolean": descriptor = "Z"; break;
 			case "void": descriptor = "V"; break;
+			case "char": descriptor = "C"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -134,6 +139,10 @@ public class Descriptors {
 				break;
 			case 'Z':
 				classes.add(boolean.class);
+				argDescriptors = argDescriptors.substring(1);
+				break;
+			case 'C':
+				classes.add(char.class);
 				argDescriptors = argDescriptors.substring(1);
 				break;
 			default:
@@ -186,6 +195,10 @@ public class Descriptors {
 				break;
 			case 'Z':
 				types.add("boolean");
+				argDescriptors = argDescriptors.substring(1);
+				break;
+			case 'C':
+				types.add("char");
 				argDescriptors = argDescriptors.substring(1);
 				break;
 			default:

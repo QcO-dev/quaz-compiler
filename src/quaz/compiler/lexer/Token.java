@@ -27,7 +27,8 @@ public class Token {
 		"for",
 		"pass",
 		"break",
-		"continue"
+		"continue",
+		"char"
 	};
 	
 	// These define what are keywords in Quaz that are not keywords in Java.
@@ -42,7 +43,8 @@ public class Token {
 		"int",
 		"double",
 		"float",
-		"boolean"
+		"boolean",
+		"char"
 	};
 	
 	public static final ArrayList<String> KEYWORDS_ARRAY = new ArrayList<>();

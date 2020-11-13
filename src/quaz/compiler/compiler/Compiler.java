@@ -52,9 +52,9 @@ public class Compiler implements Opcodes {
 	private void initWriter(ClassWriter writer, Node ast, String name) {
 		
 		
-		// Creates a public class with the correct name, which is a sub-class of java.lang.Object and is in Java 1.8 format
+		// Creates a public class with the correct name, which is a sub-class of java.lang.Object and is in Java 9 format
 		
-		writer.visit(V1_8, ACC_PUBLIC | ACC_SUPER, name, null, "java/lang/Object", null);
+		writer.visit(V9, ACC_PUBLIC | ACC_SUPER, name, null, "java/lang/Object", null);
 		
 		writer.visitSource(ast.getStart().getFile().getName(), null);
 		

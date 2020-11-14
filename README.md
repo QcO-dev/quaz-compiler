@@ -13,10 +13,11 @@ Designed to be easy to use, and yet still as powerful as native java.
   - [x] double
   - [x] float
   - [x] boolean
-  - [ ] char
+  - [x] char
   - [ ] byte
   - [ ] long
   - [ ] short
+  - [ ] generics
 - Functions
   - [x] Define
   - [x] Call

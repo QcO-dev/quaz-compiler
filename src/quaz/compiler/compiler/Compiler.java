@@ -120,7 +120,7 @@ public class Compiler implements Opcodes {
 		}
 	}
 	
-public void visit(Node ast, Context context, boolean root) throws CompilerLogicException {
+	public void visit(Node ast, Context context, boolean root) throws CompilerLogicException {
 		
 		try {
 		

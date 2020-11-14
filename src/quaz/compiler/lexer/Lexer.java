@@ -65,7 +65,6 @@ public class Lexer {
 					while(currentChar != null && !currentChar.equals("\n")) {
 						advance();
 					}
-					//reverse();
 				}
 				
 				else {
@@ -368,25 +367,25 @@ public class Lexer {
 
 	private Token greaterThan() {
 	
-	Position start = new Position(column, line, file);
-	Position end = new Position(column, line, file);
-	
-	TokenType type = TokenType.BOOL_GT;
-	
-	advance();
-	
-	if(currentChar != null && currentChar.equals("=")) {
-		type = TokenType.BOOL_GE;
-		end = new Position(column, line, file);
+		Position start = new Position(column, line, file);
+		Position end = new Position(column, line, file);
+		
+		TokenType type = TokenType.BOOL_GT;
+		
+		advance();
+		
+		if(currentChar != null && currentChar.equals("=")) {
+			type = TokenType.BOOL_GE;
+			end = new Position(column, line, file);
+		}
+		
+		else {
+			reverse();
+		}
+		
+		return new Token(type, "", start, end);
+		
 	}
-	
-	else {
-		reverse();
-	}
-	
-	return new Token(type, "", start, end);
-	
-}
 	
 	private void newline(ArrayList<Token> tokens) throws IndentionLevelException {
 		
@@ -537,10 +536,61 @@ public class Lexer {
 			advance();
 		}
 		
+		else if(currentChar != null && currentChar.toLowerCase().equals("b")) {
+			type = TokenType.BYTE;
+			advance();
+		}
+		
+		tryValidNumber(type, word, start, new Position(column, line, file));
+		
 		return new Token(type, word, start, new Position(column, line, file));
 		
 	}
 	
+	private void tryValidNumber(TokenType type, String word, Position start, Position end) throws InvalidNumberException {
+		
+		switch(type) {
+			case INT: {
+				try {
+					Integer.parseInt(word);
+				} catch(NumberFormatException e) {
+					throw new InvalidNumberException("Invalid integer: " + word, start, end);
+				}
+				break;
+			}
+			
+			case DOUBLE: {
+				try {
+					Double.parseDouble(word);
+				} catch(NumberFormatException e) {
+					throw new InvalidNumberException("Invalid double: " + word, start, end);
+				}
+				break;
+			}
+			
+			case FLOAT: {
+				try {
+					Float.parseFloat(word);
+				} catch(NumberFormatException e) {
+					throw new InvalidNumberException("Invalid float: " + word, start, end);
+				}
+				break;
+			}
+			
+			case BYTE: {
+				try {
+					Byte.parseByte(word);
+				} catch(NumberFormatException e) {
+					throw new InvalidNumberException("Invalid byte: " + word, start, end);
+				}
+				break;
+			}
+			default:
+				break;
+		}
+		
+	}
+
 	private Token string() throws InvalidEscapeException {
 		
 		Position start = new Position(column, line, file);

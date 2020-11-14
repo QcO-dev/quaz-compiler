@@ -3,6 +3,7 @@ package quaz.compiler.compiler.visitors;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
+import quaz.compiler.compiler.Cast;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
 import quaz.compiler.compiler.opStack.OperationStack;
@@ -40,10 +41,6 @@ public class VariableVisitor {
 				String descriptor = Descriptors.typeToDescriptor(vdn.getTypeName());
 				
 				locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), true));
-
-				if(Descriptors.isWide(descriptor)) {
-					locals.incrementIndex();
-				}
 				
 				// Writes the correct bytecode to get the value
 				if(vdn.isDefault()) {
@@ -54,6 +51,9 @@ public class VariableVisitor {
 							break;
 						case "char":
 							stack.push(new InsnNode(Opcodes.ICONST_0)); // Null byte
+							break;
+						case "byte":
+							stack.push(new InsnNode(Opcodes.ICONST_0));
 							break;
 						case "double":
 							stack.push(new InsnNode(Opcodes.DCONST_0));
@@ -75,10 +75,15 @@ public class VariableVisitor {
 					context.getCompilerInstance().visit(vdn.getVal(), context);
 
 					if(!context.getLastDescriptor().equals(descriptor)) {
-						throw new CompilerLogicException(
-								"Mismatched types in assignment. Expected " + vdn.getTypeName() + " but got "
-										+ Descriptors.descriptorToType(context.getLastDescriptor()),
-								vdn.getStart(), vdn.getEnd());
+						
+						try {
+						Cast.primative(node, context.getLastDescriptor(), descriptor, stack, context);
+						} catch(CompilerLogicException e) {
+							throw new CompilerLogicException(
+									"Mismatched types in assignment. Expected " + vdn.getTypeName() + " but got "
+											+ Descriptors.descriptorToType(context.getLastDescriptor()),
+									vdn.getStart(), vdn.getEnd());
+						}
 					}
 
 				}
@@ -90,7 +95,11 @@ public class VariableVisitor {
 				stack.push(new LineNumberNode(vdn.getStart().getLine(), l0));
 
 				generatePrimativeStoreValue(vdn.getTypeName(), locals.getNextIndex(), stack);
-
+				
+				if(Descriptors.isWide(descriptor)) {
+					locals.incrementIndex();
+				}
+				
 				context.setLastDescriptor(descriptor);
 
 			}
@@ -113,10 +122,16 @@ public class VariableVisitor {
 					context.getCompilerInstance().visit(vdn.getVal(), context);
 
 					if(!context.getLastDescriptor().equals("L" + type + ";")) {
-						throw new CompilerLogicException(
-								"Mismatched types in assignment. Expected " + type.replace('/', '.') + " but got "
-										+ Descriptors.descriptorToType(context.getLastDescriptor()),
-								vdn.getStart(), vdn.getEnd());
+						
+						try {
+							Cast.nonPrimative(node, "L" + type + ";", context.getLastDescriptor(), stack, context);
+						} catch(CompilerLogicException e) {
+							throw new CompilerLogicException(
+									"Mismatched types in assignment. Expected " + type.replace('/', '.') + " but got "
+											+ Descriptors.descriptorToType(context.getLastDescriptor()),
+									vdn.getStart(), vdn.getEnd());
+						}
+						
 					}
 
 				} else {
@@ -198,10 +213,9 @@ public class VariableVisitor {
 
 	private void generatePrimativeStoreValue(String type, int index, OperationStack stack) {
 		switch(type) {
-			case "int":
-				stack.push(new VarNode(Opcodes.ISTORE, index));
-				break;
 			case "char":
+			case "byte":
+			case "int":
 				stack.push(new VarNode(Opcodes.ISTORE, index));
 				break;
 			case "double":
@@ -242,6 +256,10 @@ public class VariableVisitor {
 			case "C":
 				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
 				context.setLastDescriptor("C");
+				break;
+			case "B":
+				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
+				context.setLastDescriptor("B");
 				break;
 			case "D":
 				stack.push(new VarNode(Opcodes.DLOAD, var.getIndex()));

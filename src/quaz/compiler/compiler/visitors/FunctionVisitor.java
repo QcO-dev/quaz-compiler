@@ -172,9 +172,6 @@ public class FunctionVisitor implements Opcodes {
 			for(int i = 0; i < classParameters.length; i++) {
 				Class<?> klass = classParameters[i];
 				if(!klass.isAssignableFrom(givenParams[i])) {
-					//System.out.println(klass);
-					//System.out.println(givenParams[i]);
-					//throw new CompilerLogicException("Function \'" + funcName + "\' does not exist in current scope.\nArgument types given: " + String.join(", ", Descriptors.descriptorToTypes("(" + descriptor + ")V")), fcn.getStart(), fcn.getEnd());
 					continue outer;
 				}
 			}
@@ -224,6 +221,8 @@ public class FunctionVisitor implements Opcodes {
 		}
 		
 		switch(desc) {
+			case "C":
+			case "B":
 			case "I":
 				stack.push(new InsnNode(IRETURN));
 				context.setHasReturnedLast(true);
@@ -263,6 +262,8 @@ public class FunctionVisitor implements Opcodes {
 		
 		if(Descriptors.typeIsPrimative(context.getMethodReturnType())) {
 			switch(context.getMethodReturnType()) {
+				case "char":
+				case "byte":
 				case "int":
 					stack.push(new InsnNode(ICONST_0));
 					stack.push(new InsnNode(IRETURN));

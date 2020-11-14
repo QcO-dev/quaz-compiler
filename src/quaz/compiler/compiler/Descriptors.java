@@ -17,6 +17,7 @@ public class Descriptors {
 			case "C":
 			case "B":
 			case "J":
+			case "S":
 				return true;
 			
 			default:
@@ -37,6 +38,7 @@ public class Descriptors {
 			case "char":
 			case "byte":
 			case "long":
+			case "short":
 				return true;
 			
 			default:
@@ -57,6 +59,7 @@ public class Descriptors {
 			case "C": type = "char"; break;
 			case "B": type = "byte"; break;
 			case "J": type = "long"; break;
+			case "S": type = "short"; break;
 			default:
 				if(descriptor.startsWith("[")) {
 					type = descriptorToType(descriptor.substring(1)) + "[]";
@@ -84,6 +87,7 @@ public class Descriptors {
 			case "char": descriptor = "C"; break;
 			case "byte": descriptor = "B"; break;
 			case "long": descriptor = "J"; break;
+			case "short": descriptor = "S"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -110,6 +114,7 @@ public class Descriptors {
 			case "char": descriptor = "C"; break;
 			case "byte": descriptor = "B"; break;
 			case "long": descriptor = "J"; break;
+			case "short": descriptor = "S"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -161,6 +166,10 @@ public class Descriptors {
 					break;
 				case 'J':
 					classes.add(long.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'S':
+					classes.add(short.class);
 					argDescriptors = argDescriptors.substring(1);
 					break;
 				default:
@@ -228,6 +237,12 @@ public class Descriptors {
 				types.add("long");
 				argDescriptors = argDescriptors.substring(1);
 				break;
+				
+			case 'S':
+				types.add("short");
+				argDescriptors = argDescriptors.substring(1);
+				break;
+				
 			default:
 				argDescriptors = argDescriptors.substring(1); // Skip
 				break;

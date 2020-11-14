@@ -546,6 +546,11 @@ public class Lexer {
 			advance();
 		}
 		
+		else if(currentChar != null && currentChar.toLowerCase().equals("s")) {
+			type = TokenType.SHORT;
+			advance();
+		}
+		
 		tryValidNumber(type, word, start, new Position(column, line, file));
 		
 		return new Token(type, word, start, new Position(column, line, file));
@@ -596,6 +601,15 @@ public class Lexer {
 					Long.parseLong(word);
 				} catch(NumberFormatException e) {
 					throw new InvalidNumberException("Invalid long: " + word, start, end);
+				}
+				break;
+			}
+			
+			case SHORT: {
+				try {
+					Short.parseShort(word);
+				} catch(NumberFormatException e) {
+					throw new InvalidNumberException("Invalid short: " + word, start, end);
 				}
 				break;
 			}

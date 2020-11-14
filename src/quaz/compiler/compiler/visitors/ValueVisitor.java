@@ -15,6 +15,7 @@ import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
 import quaz.compiler.parser.nodes.value.LongNode;
+import quaz.compiler.parser.nodes.value.ShortNode;
 
 public class ValueVisitor {
 	
@@ -234,6 +235,76 @@ public class ValueVisitor {
 		}
 		
 		context.setLastDescriptor("J");
+		context.setLastWasConstant(true);
+	}
+	
+	public void visitShortNode(Node node, Context context) {
+		ShortNode in = (ShortNode) node;
+		
+		short val = in.getVal();
+		
+		OperationStack stack = context.getOpStack();
+		if(val >= 0) { // Is positive
+			if(val <= 5) {
+				
+				switch(val) {
+					case 0:
+						stack.push(new InsnNode(Opcodes.ICONST_0));
+						break;
+					case 1:
+						stack.push(new InsnNode(Opcodes.ICONST_1));
+						break;
+					case 2:
+						stack.push(new InsnNode(Opcodes.ICONST_2));
+						break;
+					case 3:
+						stack.push(new InsnNode(Opcodes.ICONST_3));
+						break;
+					case 4:
+						stack.push(new InsnNode(Opcodes.ICONST_4));
+						break;
+					case 5:
+						stack.push(new InsnNode(Opcodes.ICONST_5));
+						break;
+				}
+				
+			}
+			
+			else if(val < 256) {
+				stack.push(new IntInsnNode(Opcodes.BIPUSH, val));
+			}
+			
+			else if(val < 65536) {
+				stack.push(new IntInsnNode(Opcodes.SIPUSH, val));
+			}
+			
+			else {
+				stack.push(new LdcNode(val));
+			}
+		
+		}
+		
+		else {
+			
+			if(val == -1) {
+				stack.push(new InsnNode(Opcodes.ICONST_M1));
+			}
+			
+			else if(val >= -128) {
+				stack.push(new IntInsnNode(Opcodes.BIPUSH, val));
+			}
+			
+			else if(val >= 32768) {
+				stack.push(new IntInsnNode(Opcodes.SIPUSH, val));
+			}
+			
+			else {
+				stack.push(new LdcNode(val));
+			}
+			
+		}
+		
+		context.setLastDescriptor("S");
 		context.setLastWasConstant(true);
 	}
 	

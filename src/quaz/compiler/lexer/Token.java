@@ -30,7 +30,8 @@ public class Token {
 		"continue",
 		"char",
 		"byte",
-		"long"
+		"long",
+		"short"
 	};
 	
 	// These define what are keywords in Quaz that are not keywords in Java.
@@ -48,7 +49,8 @@ public class Token {
 		"boolean",
 		"char",
 		"byte",
-		"long"
+		"long",
+		"short"
 	};
 	
 	public static final ArrayList<String> KEYWORDS_ARRAY = new ArrayList<>();

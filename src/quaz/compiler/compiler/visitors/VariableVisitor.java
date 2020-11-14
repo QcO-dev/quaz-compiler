@@ -47,12 +47,10 @@ public class VariableVisitor {
 
 					switch(vdn.getTypeName()) {
 						case "int":
-							stack.push(new InsnNode(Opcodes.ICONST_0));
-							break;
 						case "char":
-							stack.push(new InsnNode(Opcodes.ICONST_0)); // Null byte
-							break;
 						case "byte":
+						case "boolean":
+						case "short":
 							stack.push(new InsnNode(Opcodes.ICONST_0));
 							break;
 						case "long":
@@ -63,9 +61,6 @@ public class VariableVisitor {
 							break;
 						case "float":
 							stack.push(new InsnNode(Opcodes.FCONST_0));
-							break;
-						case "boolean":
-							stack.push(new InsnNode(Opcodes.ICONST_0)); // false
 							break;
 					}
 
@@ -219,6 +214,7 @@ public class VariableVisitor {
 			case "char":
 			case "byte":
 			case "int":
+			case "short":
 				stack.push(new VarNode(Opcodes.ISTORE, index));
 				break;
 			case "long":
@@ -266,6 +262,10 @@ public class VariableVisitor {
 			case "B":
 				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
 				context.setLastDescriptor("B");
+				break;
+			case "S":
+				stack.push(new VarNode(Opcodes.ILOAD, var.getIndex()));
+				context.setLastDescriptor("S");
 				break;
 			case "J":
 				stack.push(new VarNode(Opcodes.LLOAD, var.getIndex()));

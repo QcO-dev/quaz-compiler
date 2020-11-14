@@ -224,6 +224,7 @@ public class FunctionVisitor implements Opcodes {
 			case "C":
 			case "B":
 			case "I":
+			case "S":
 				stack.push(new InsnNode(IRETURN));
 				context.setHasReturnedLast(true);
 				break;
@@ -270,6 +271,7 @@ public class FunctionVisitor implements Opcodes {
 				case "char":
 				case "byte":
 				case "int":
+				case "short":
 					stack.push(new InsnNode(ICONST_0));
 					stack.push(new InsnNode(IRETURN));
 					context.setHasReturnedLast(true);

@@ -93,8 +93,6 @@ public class CliHandler {
 		
 		StandardLibrary.buildStaticImports();
 
-		Token.buildArrays();
-
 		if(!async) {
 			for(String filename : args) {
 				compile(filename);

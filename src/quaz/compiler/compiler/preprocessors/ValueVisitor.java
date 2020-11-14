@@ -19,4 +19,6 @@ public class ValueVisitor {
 	
 	public void visitByteNode(Node node, Context context) {}
 	
+	public void visitLongNode(Node node, Context context) {}
+	
 }

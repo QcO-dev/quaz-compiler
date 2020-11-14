@@ -16,6 +16,7 @@ public class Descriptors {
 			case "V":
 			case "C":
 			case "B":
+			case "J":
 				return true;
 			
 			default:
@@ -35,6 +36,7 @@ public class Descriptors {
 			case "void":
 			case "char":
 			case "byte":
+			case "long":
 				return true;
 			
 			default:
@@ -54,6 +56,7 @@ public class Descriptors {
 			case "Z": type = "boolean"; break;
 			case "C": type = "char"; break;
 			case "B": type = "byte"; break;
+			case "J": type = "long"; break;
 			default:
 				if(descriptor.startsWith("[")) {
 					type = descriptorToType(descriptor.substring(1)) + "[]";
@@ -80,6 +83,7 @@ public class Descriptors {
 			case "void": descriptor = "V"; break;
 			case "char": descriptor = "C"; break;
 			case "byte": descriptor = "B"; break;
+			case "long": descriptor = "J"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -105,6 +109,7 @@ public class Descriptors {
 			case "void": descriptor = "V"; break;
 			case "char": descriptor = "C"; break;
 			case "byte": descriptor = "B"; break;
+			case "long": descriptor = "J"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -152,6 +157,10 @@ public class Descriptors {
 					break;
 				case 'B':
 					classes.add(byte.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'J':
+					classes.add(long.class);
 					argDescriptors = argDescriptors.substring(1);
 					break;
 				default:
@@ -212,6 +221,11 @@ public class Descriptors {
 				break;
 			case 'B':
 				types.add("byte");
+				argDescriptors = argDescriptors.substring(1);
+				break;
+				
+			case 'J':
+				types.add("long");
 				argDescriptors = argDescriptors.substring(1);
 				break;
 			default:

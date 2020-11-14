@@ -12,6 +12,7 @@ public enum TokenType {
 	CHAR,
 	BYTE,
 	LONG,
+	SHORT,
 	
 	LPAREN,
 	RPAREN,

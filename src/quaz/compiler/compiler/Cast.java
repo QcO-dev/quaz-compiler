@@ -35,6 +35,9 @@ public class Cast {
 					case "C":
 						context.setLastDescriptor("C");
 						break;
+					case "S":
+						context.setLastDescriptor("S");
+						break;
 					case "J":
 						stack.push(new InsnNode(Opcodes.I2L));
 						context.setLastDescriptor("J");
@@ -71,6 +74,9 @@ public class Cast {
 						break;
 					case "Z":
 						context.setLastDescriptor("Z");
+						break;
+					case "S":
+						context.setLastDescriptor("S");
 						break;
 					
 					case "J":
@@ -153,10 +159,20 @@ public class Cast {
 				switch(desc) {
 					case "Z":
 						break;
-					case "C":
-					case "B":
 					case "I":
 						context.setLastDescriptor("I");
+						break;
+						
+					case "S":
+						context.setLastDescriptor("S");
+						break;
+						
+					case "C":
+						context.setLastDescriptor("C");
+						break;
+						
+					case "B":
+						context.setLastDescriptor("B");
 						break;
 						
 					case "J":
@@ -173,6 +189,129 @@ public class Cast {
 					default:
 						throw new CompilerLogicException("Cannot cast from boolean to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
 				}
+				break;
+				
+			case "B":
+				switch(desc) {
+					case "B":
+						break;
+					case "D":
+						stack.push(new InsnNode(Opcodes.I2D));
+						context.setLastDescriptor("D");
+						break;
+					case "F":
+						stack.push(new InsnNode(Opcodes.I2F));
+						context.setLastDescriptor("F");
+						break;
+					case "I":
+						context.setLastDescriptor("I");
+						break;
+					case "Z":
+						context.setLastDescriptor("Z");
+						break;
+					case "C":
+						context.setLastDescriptor("C");
+						break;
+					case "S":
+						context.setLastDescriptor("S");
+						break;
+					case "J":
+						stack.push(new InsnNode(Opcodes.I2L));
+						context.setLastDescriptor("J");
+						break;
+						
+					case "Ljava/lang/String;": {
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Byte", "toString", "(B)Ljava/lang/String;", false));
+						context.setLastDescriptor("Ljava/lang/String;");
+						break;
+					}
+					default:
+						throw new CompilerLogicException("Cannot cast from byte to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
+				}
+				break;
+				
+			case "S":
+				switch(desc) {
+					case "S":
+						break;
+					case "D":
+						stack.push(new InsnNode(Opcodes.I2D));
+						context.setLastDescriptor("D");
+						break;
+					case "F":
+						stack.push(new InsnNode(Opcodes.I2F));
+						context.setLastDescriptor("F");
+						break;
+					case "I":
+						context.setLastDescriptor("I");
+						break;
+					case "Z":
+						context.setLastDescriptor("Z");
+						break;
+					case "C":
+						context.setLastDescriptor("C");
+						break;
+					case "B":
+						context.setLastDescriptor("B");
+						break;
+					case "J":
+						stack.push(new InsnNode(Opcodes.I2L));
+						context.setLastDescriptor("J");
+						break;
+						
+					case "Ljava/lang/String;": {
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Short", "toString", "(S)Ljava/lang/String;", false));
+						context.setLastDescriptor("Ljava/lang/String;");
+						break;
+					}
+					default:
+						throw new CompilerLogicException("Cannot cast from short to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
+				}
+				break;
+				
+			case "J":
+				switch(desc) {
+					case "J":
+						break;
+					case "D":
+						stack.push(new InsnNode(Opcodes.L2D));
+						context.setLastDescriptor("D");
+						break;
+					case "F":
+						stack.push(new InsnNode(Opcodes.L2F));
+						context.setLastDescriptor("F");
+						break;
+					case "I":
+						stack.push(new InsnNode(Opcodes.L2I));
+						context.setLastDescriptor("I");
+						break;
+					case "Z":
+						stack.push(new InsnNode(Opcodes.L2I));
+						context.setLastDescriptor("Z");
+						break;
+					case "C":
+						stack.push(new InsnNode(Opcodes.L2I));
+						context.setLastDescriptor("C");
+						break;
+					case "S":
+						stack.push(new InsnNode(Opcodes.L2I));
+						context.setLastDescriptor("S");
+						break;
+					case "B":
+						stack.push(new InsnNode(Opcodes.L2I));
+						context.setLastDescriptor("S");
+						break;
+						
+					case "Ljava/lang/String;": {
+						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Long", "toString", "(J)Ljava/lang/String;", false));
+						context.setLastDescriptor("Ljava/lang/String;");
+						break;
+					}
+					default:
+						throw new CompilerLogicException("Cannot cast from byte to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
+				}
+				break;
+				
 		}
 		
 		context.setLastWasConstant(false);
@@ -199,6 +338,13 @@ public class Cast {
 				
 				case "B": {
 					stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Byte", "parseByte", "(Ljava/lang/String;)B", false));
+					context.setLastDescriptor("B");
+					context.setLastWasConstant(false);
+					return;
+				}
+				
+				case "S": {
+					stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Short", "parseShort", "(Ljava/lang/String;)S", false));
 					context.setLastDescriptor("B");
 					context.setLastWasConstant(false);
 					return;

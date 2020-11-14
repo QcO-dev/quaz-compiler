@@ -89,6 +89,9 @@ public class OperationVisitor {
 			case "J":
 				longOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
+			case "S":
+				shortOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
+				break;
 			default:
 				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
@@ -361,9 +364,13 @@ public class OperationVisitor {
 					break;
 				case "Z":
 				case "C":
+				case "S":
 				case "B":
 					break;
 					
+				case "J":
+					stack.push(new InsnNode(Opcodes.L2I));
+					break;
 				case "Ljava/lang/String;": {
 					if(type == TokenType.PLUS) {
 						concatStrings(bon, stack, addedElements, context);
@@ -595,6 +602,9 @@ public class OperationVisitor {
 					break;
 				case "Z":
 				case "I":
+				case "S":
+				case "B":
+					stack.push(new InsnNode(Opcodes.I2C));
 					break;
 					
 				case "Ljava/lang/String;": {
@@ -1279,7 +1289,7 @@ public class OperationVisitor {
 
 				out: if(!rightDesc.equals("Z")) {
 
-					if(rightDesc.equals("I") || rightDesc.equals("C")) {
+					if(rightDesc.equals("I") || rightDesc.equals("C") || rightDesc.equals("S") || rightDesc.equals("B")) {
 						break out;
 					}
 
@@ -1315,7 +1325,7 @@ public class OperationVisitor {
 				String rightDesc = context.getLastDescriptor();
 
 				out: if(!rightDesc.equals("Z")) {
-					if(rightDesc.equals("I") || rightDesc.equals("C")) {
+					if(rightDesc.equals("I") || rightDesc.equals("C") || rightDesc.equals("S") || rightDesc.equals("B")) {
 						break out;
 					}
 					throw new CompilerLogicException(rightDesc, right.getStart(), right.getEnd());
@@ -1350,7 +1360,7 @@ public class OperationVisitor {
 
 				out: if(!rightDesc.equals("Z")) {
 
-					if(rightDesc.equals("I") || rightDesc.equals("C")) {
+					if(rightDesc.equals("I") || rightDesc.equals("C") || rightDesc.equals("S") || rightDesc.equals("B")) {
 						break out;
 					}
 
@@ -1386,7 +1396,7 @@ public class OperationVisitor {
 
 				out: if(!rightDesc.equals("Z")) {
 
-					if(rightDesc.equals("I") || rightDesc.equals("C")) {
+					if(rightDesc.equals("I") || rightDesc.equals("C") || rightDesc.equals("S") || rightDesc.equals("B")) {
 						break out;
 					}
 
@@ -1421,7 +1431,7 @@ public class OperationVisitor {
 
 				out: if(!rightDesc.equals("Z")) {
 
-					if(rightDesc.equals("I") || rightDesc.equals("C")) {
+					if(rightDesc.equals("I") || rightDesc.equals("C") || rightDesc.equals("S") || rightDesc.equals("B")) {
 						break out;
 					}
 
@@ -1456,6 +1466,7 @@ public class OperationVisitor {
 				case "Z":
 				case "I":
 				case "C":
+				case "S":
 					stack.push(new InsnNode(Opcodes.I2B));
 					break;
 					
@@ -1913,6 +1924,236 @@ public class OperationVisitor {
 				}
 
 				context.setLastDescriptor("J");
+				break;
+			}
+
+			default:
+				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
+		}
+		context.setLastWasConstant(false);
+	}
+	
+	private void shortOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
+			throws CompilerLogicException {
+
+		context.getCompilerInstance().visit(bon.getRight(), context);
+
+		String rightDesc = context.getLastDescriptor();
+		
+		OperationStack stack = context.getOpStack();
+		
+		if(!rightDesc.equals("S")) {
+
+			switch(rightDesc) {
+				case "Z":
+				case "I":
+				case "C":
+				case "B":
+					stack.push(new InsnNode(Opcodes.I2S));
+					break;
+					
+				case "Ljava/lang/String;": {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+					
+
+				default:
+					throw new CompilerLogicException("Expected short, got " + Descriptors.descriptorToType(rightDesc),
+							right.getStart(), right.getEnd());
+			}
+
+		}
+		
+		switch(type) {
+			case PLUS:
+				stack.push(new InsnNode(Opcodes.IADD));
+				context.setLastDescriptor("S");
+				break;
+
+			case MINUS:
+				stack.push(new InsnNode(Opcodes.ISUB));
+				context.setLastDescriptor("S");
+				break;
+
+			case MULTIPLY:
+				stack.push(new InsnNode(Opcodes.IMUL));
+				context.setLastDescriptor("S");
+				break;
+			case DIVIDE:
+				stack.push(new InsnNode(Opcodes.IDIV));
+				context.setLastDescriptor("S");
+				break;
+
+			case MODULUS:
+				stack.push(new InsnNode(Opcodes.IREM));
+				context.setLastDescriptor("S");
+				break;
+
+			case BIT_OR:
+				stack.push(new InsnNode(Opcodes.IOR));
+				context.setLastDescriptor("S");
+				break;
+			case BIT_AND:
+				stack.push(new InsnNode(Opcodes.IAND));
+				context.setLastDescriptor("S");
+				break;
+				
+			case BIT_XOR:
+				stack.push(new InsnNode(Opcodes.IXOR));
+				context.setLastDescriptor("S");
+				break;
+				
+			case BOOL_TRI_EQ:
+			case BOOL_EQ: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_TRI_NE:
+			case BOOL_NE: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_LT: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPGE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_LE: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPGT, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_GT: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPLE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_GE: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IF_ICMPLT, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+				
+			case EQUALS: {
+
+				if(bon.getLeft() instanceof VariableAccessNode) {
+					LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
+
+					if(var == null) {
+						throw new CompilerLogicException(
+								"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
+								bon.getLeft().getStart(), bon.getLeft().getEnd());
+					}
+
+					stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
+				}
+
+				else {
+					throw new CompilerLogicException("Can only assign to variables", bon.getLeft().getStart(),
+							bon.getLeft().getEnd());
+				}
+
+				context.setLastDescriptor("S");
 				break;
 			}
 

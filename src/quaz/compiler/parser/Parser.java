@@ -31,6 +31,7 @@ import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
 import quaz.compiler.parser.nodes.value.LongNode;
+import quaz.compiler.parser.nodes.value.ShortNode;
 import quaz.compiler.parser.nodes.value.StringNode;
 import quaz.compiler.parser.nodes.variable.VariableAccessNode;
 import quaz.compiler.parser.nodes.variable.VariableDeclarationNode;
@@ -966,6 +967,10 @@ public class Parser {
 		
 		else if(currentToken.getType() == TokenType.LONG) {
 			return new LongNode(currentToken.getValue(), currentToken);
+		}
+		
+		else if(currentToken.getType() == TokenType.SHORT) {
+			return new ShortNode(currentToken.getValue(), currentToken);
 		}
 		
 		else if(currentToken.matches(TokenType.KEYWORD, "false")) {

@@ -21,4 +21,6 @@ public class ValueVisitor {
 	
 	public void visitLongNode(Node node, Context context) {}
 	
+	public void visitShortNode(Node node, Context context) {}
+	
 }

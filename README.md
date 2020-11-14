@@ -15,7 +15,7 @@ Designed to be easy to use, and yet still as powerful as native java.
   - [x] boolean
   - [x] char
   - [x] byte
-  - [ ] long
+  - [x] long
   - [ ] short
   - [ ] generics
 - Functions

@@ -228,6 +228,11 @@ public class FunctionVisitor implements Opcodes {
 				context.setHasReturnedLast(true);
 				break;
 				
+			case "J":
+				stack.push(new InsnNode(LRETURN));
+				context.setHasReturnedLast(true);
+				break;
+				
 			case "D":
 				stack.push(new InsnNode(DRETURN));
 				context.setHasReturnedLast(true);
@@ -269,6 +274,13 @@ public class FunctionVisitor implements Opcodes {
 					stack.push(new InsnNode(IRETURN));
 					context.setHasReturnedLast(true);
 					break;
+					
+				case "long":
+					stack.push(new InsnNode(LCONST_0));
+					stack.push(new InsnNode(LRETURN));
+					context.setHasReturnedLast(true);
+					break;
+					
 				case "double":
 					stack.push(new InsnNode(DCONST_0));
 					stack.push(new InsnNode(DRETURN));

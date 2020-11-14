@@ -21,6 +21,7 @@ public class StandardLibrary {
 			STATIC_IMPORTS.add(new Pair<String, Function>("Z", new Function("println", "quaz/util/Stdout", "(Z)V", false, null, "V")));
 			STATIC_IMPORTS.add(new Pair<String, Function>("C", new Function("println", "quaz/util/Stdout", "(C)V", false, null, "V")));
 			STATIC_IMPORTS.add(new Pair<String, Function>("B", new Function("println", "quaz/util/Stdout", "(B)V", false, null, "V")));
+			STATIC_IMPORTS.add(new Pair<String, Function>("J", new Function("println", "quaz/util/Stdout", "(J)V", false, null, "V")));
 		}
 		
 		if(Config.getIniFile().get("BUILTINS", "input").equals("true")) {
@@ -32,6 +33,7 @@ public class StandardLibrary {
 			STATIC_IMPORTS.add(new Pair<String, Function>("Z", new Function("input", "quaz/util/Stdin", "(Z)Ljava/lang/String;", false, null, "Ljava/lang/String;")));
 			STATIC_IMPORTS.add(new Pair<String, Function>("C", new Function("input", "quaz/util/Stdin", "(C)Ljava/lang/String;", false, null, "Ljava/lang/String;")));
 			STATIC_IMPORTS.add(new Pair<String, Function>("B", new Function("input", "quaz/util/Stdin", "(B)Ljava/lang/String;", false, null, "Ljava/lang/String;")));
+			STATIC_IMPORTS.add(new Pair<String, Function>("J", new Function("input", "quaz/util/Stdin", "(J)Ljava/lang/String;", false, null, "Ljava/lang/String;")));
 		}
 
 	}

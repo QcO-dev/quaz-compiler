@@ -86,6 +86,9 @@ public class OperationVisitor {
 			case "B":
 				byteOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
+			case "J":
+				longOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
+				break;
 			default:
 				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
@@ -1666,5 +1669,257 @@ public class OperationVisitor {
 		}
 		context.setLastWasConstant(false);
 	}
+	
+	private void longOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
+			throws CompilerLogicException {
 
+		context.getCompilerInstance().visit(bon.getRight(), context);
+
+		String rightDesc = context.getLastDescriptor();
+		
+		OperationStack stack = context.getOpStack();
+		
+		if(!rightDesc.equals("J")) {
+
+			switch(rightDesc) {
+				case "D":
+					stack.push(new InsnNode(Opcodes.D2L));
+					break;
+				case "F":
+					stack.push(new InsnNode(Opcodes.F2L));
+					break;
+				case "Z":
+				case "C":
+				case "B":
+				case "I":
+					stack.push(new InsnNode(Opcodes.I2L));
+					break;
+					
+				case "Ljava/lang/String;": {
+					if(type == TokenType.PLUS) {
+						concatStrings(bon, stack, addedElements, context);
+						return;
+					}
+				}
+					
+
+				default:
+					throw new CompilerLogicException("Expected int, got " + Descriptors.descriptorToType(rightDesc),
+							right.getStart(), right.getEnd());
+			}
+
+		}
+		
+		switch(type) {
+			case PLUS:
+				stack.push(new InsnNode(Opcodes.LADD));
+				context.setLastDescriptor("J");
+				break;
+
+			case MINUS:
+				stack.push(new InsnNode(Opcodes.LSUB));
+				context.setLastDescriptor("J");
+				break;
+
+			case MULTIPLY:
+				stack.push(new InsnNode(Opcodes.LMUL));
+				context.setLastDescriptor("J");
+				break;
+			case DIVIDE:
+				stack.push(new InsnNode(Opcodes.LDIV));
+				context.setLastDescriptor("J");
+				break;
+
+			case MODULUS:
+				stack.push(new InsnNode(Opcodes.LREM));
+				context.setLastDescriptor("J");
+				break;
+
+			case BIT_OR:
+				stack.push(new InsnNode(Opcodes.LOR));
+				context.setLastDescriptor("J");
+				break;
+			case BIT_AND:
+				stack.push(new InsnNode(Opcodes.LAND));
+				context.setLastDescriptor("J");
+				break;
+				
+			case BIT_XOR:
+				stack.push(new InsnNode(Opcodes.LXOR));
+				context.setLastDescriptor("J");
+				break;
+				
+			case BOOL_TRI_EQ:
+			case BOOL_EQ: {
+			
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+				
+			}
+			
+			case BOOL_TRI_NE:
+			case BOOL_NE: {
+				
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFEQ, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+				
+			}
+			
+			case BOOL_LT: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFGE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_LE: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFGT, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_GT: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFLE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			case BOOL_GE: {
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFLT, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+				
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+				
+			case EQUALS: {
+
+				if(bon.getLeft() instanceof VariableAccessNode) {
+					LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
+
+					if(var == null) {
+						throw new CompilerLogicException(
+								"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
+								bon.getLeft().getStart(), bon.getLeft().getEnd());
+					}
+
+					stack.push(new VarNode(Opcodes.LSTORE, var.getIndex()));
+				}
+
+				else {
+					throw new CompilerLogicException("Can only assign to variables", bon.getLeft().getStart(),
+							bon.getLeft().getEnd());
+				}
+
+				context.setLastDescriptor("J");
+				break;
+			}
+
+			default:
+				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
+		}
+		context.setLastWasConstant(false);
+	}
+	
 }

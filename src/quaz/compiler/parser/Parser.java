@@ -30,6 +30,7 @@ import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
+import quaz.compiler.parser.nodes.value.LongNode;
 import quaz.compiler.parser.nodes.value.StringNode;
 import quaz.compiler.parser.nodes.variable.VariableAccessNode;
 import quaz.compiler.parser.nodes.variable.VariableDeclarationNode;
@@ -490,7 +491,7 @@ public class Parser {
 
 		advance(false);
 
-		if(currentToken.getType() == TokenType.NEWLINE || currentToken.getType() == TokenType.DEDENT) {
+		if(currentToken.getType() == TokenType.NEWLINE || currentToken.getType() == TokenType.DEDENT || currentToken.getType() == TokenType.SEMI) {
 			return new VariableDeclarationNode(name, typeName, null, isExplicit, isKeyword, true, start, end);
 		} else if(currentToken.getType() != TokenType.EQUALS) {
 			throw new UnexpectedTokenException("Expected assignment", currentToken);
@@ -961,6 +962,10 @@ public class Parser {
 		
 		else if(currentToken.getType() == TokenType.BYTE) {
 			return new ByteNode(currentToken.getValue(), currentToken);
+		}
+		
+		else if(currentToken.getType() == TokenType.LONG) {
+			return new LongNode(currentToken.getValue(), currentToken);
 		}
 		
 		else if(currentToken.matches(TokenType.KEYWORD, "false")) {

@@ -35,7 +35,11 @@ public class Cast {
 					case "C":
 						context.setLastDescriptor("C");
 						break;
-					
+					case "J":
+						stack.push(new InsnNode(Opcodes.I2L));
+						context.setLastDescriptor("J");
+						break;
+						
 					case "Ljava/lang/String;": {
 						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false));
 						context.setLastDescriptor("Ljava/lang/String;");
@@ -69,6 +73,11 @@ public class Cast {
 						context.setLastDescriptor("Z");
 						break;
 					
+					case "J":
+						stack.push(new InsnNode(Opcodes.I2L));
+						context.setLastDescriptor("J");
+						break;
+						
 					case "Ljava/lang/String;": {
 						stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Character", "toString", "(C)Ljava/lang/String;", false));
 						context.setLastDescriptor("Ljava/lang/String;");
@@ -83,6 +92,9 @@ public class Cast {
 				switch(desc) {
 					case "D":
 						break;
+					case "C":
+					case "B":
+					case "Z":
 					case "I":
 						stack.push(new InsnNode(Opcodes.D2I));
 						context.setLastDescriptor("I");
@@ -90,6 +102,10 @@ public class Cast {
 					case "F":
 						stack.push(new InsnNode(Opcodes.D2F));
 						context.setLastDescriptor("F");
+						break;
+					case "J":
+						stack.push(new InsnNode(Opcodes.D2L));
+						context.setLastDescriptor("J");
 						break;
 						
 					case "Ljava/lang/String;": {
@@ -106,6 +122,9 @@ public class Cast {
 				switch(desc) {
 					case "F":
 						break;
+					case "C":
+					case "Z":
+					case "B":
 					case "I":
 						stack.push(new InsnNode(Opcodes.F2I));
 						context.setLastDescriptor("I");
@@ -113,6 +132,11 @@ public class Cast {
 					case "D":
 						stack.push(new InsnNode(Opcodes.F2D));
 						context.setLastDescriptor("D");
+						break;
+						
+					case "J":
+						stack.push(new InsnNode(Opcodes.F2L));
+						context.setLastDescriptor("J");
 						break;
 						
 					case "Ljava/lang/String;": {
@@ -133,6 +157,11 @@ public class Cast {
 					case "B":
 					case "I":
 						context.setLastDescriptor("I");
+						break;
+						
+					case "J":
+						stack.push(new InsnNode(Opcodes.I2L));
+						context.setLastDescriptor("J");
 						break;
 						
 					case "Ljava/lang/String;": {
@@ -191,6 +220,13 @@ public class Cast {
 				
 				case "Z": {
 					stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Boolean", "parseBoolean", "(Ljava/lang/String;)Z", false));
+					context.setLastDescriptor("Z");
+					context.setLastWasConstant(false);
+					return;
+				}
+				
+				case "J": {
+					stack.push(new MethodNode(Opcodes.INVOKESTATIC, "java/lang/Long", "parseLong", "(Ljava/lang/String;)J", false));
 					context.setLastDescriptor("Z");
 					context.setLastWasConstant(false);
 					return;

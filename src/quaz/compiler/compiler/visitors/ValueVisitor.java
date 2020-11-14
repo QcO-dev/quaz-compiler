@@ -14,6 +14,7 @@ import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
+import quaz.compiler.parser.nodes.value.LongNode;
 
 public class ValueVisitor {
 	
@@ -211,6 +212,28 @@ public class ValueVisitor {
 		
 		context.getOpStack().add(new IntInsnNode(Opcodes.BIPUSH, val));
 		context.setLastDescriptor("B");
+		context.setLastWasConstant(true);
+	}
+	
+	public void visitLongNode(Node node, Context context) {
+		
+		LongNode ln = (LongNode) node;
+		
+		long val = ln.getVal();
+		
+		OperationStack stack = context.getOpStack();
+		
+		if(val == 0) {
+			stack.push(new InsnNode(Opcodes.LCONST_0));
+		}
+		else if(val == 1) {
+			stack.push(new InsnNode(Opcodes.LCONST_1));
+		}
+		else {
+			stack.push(new LdcNode(val));
+		}
+		
+		context.setLastDescriptor("J");
 		context.setLastWasConstant(true);
 	}
 	

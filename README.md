@@ -16,7 +16,7 @@ Designed to be easy to use, and yet still as powerful as native java.
   - [x] char
   - [x] byte
   - [x] long
-  - [ ] short
+  - [x] short
   - [ ] generics
 - Functions
   - [x] Define

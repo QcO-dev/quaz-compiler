@@ -15,6 +15,7 @@ public class Descriptors {
 			case "Z":
 			case "V":
 			case "C":
+			case "B":
 				return true;
 			
 			default:
@@ -33,6 +34,7 @@ public class Descriptors {
 			case "boolean":
 			case "void":
 			case "char":
+			case "byte":
 				return true;
 			
 			default:
@@ -51,6 +53,7 @@ public class Descriptors {
 			case "F": type = "float"; break;
 			case "Z": type = "boolean"; break;
 			case "C": type = "char"; break;
+			case "B": type = "byte"; break;
 			default:
 				if(descriptor.startsWith("[")) {
 					type = descriptorToType(descriptor.substring(1)) + "[]";
@@ -76,6 +79,7 @@ public class Descriptors {
 			case "boolean": descriptor = "Z"; break;
 			case "void": descriptor = "V"; break;
 			case "char": descriptor = "C"; break;
+			case "byte": descriptor = "B"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -100,6 +104,7 @@ public class Descriptors {
 			case "boolean": descriptor = "Z"; break;
 			case "void": descriptor = "V"; break;
 			case "char": descriptor = "C"; break;
+			case "byte": descriptor = "B"; break;
 			default:
 				if(type.endsWith("[]")) {
 					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
@@ -121,33 +126,37 @@ public class Descriptors {
 		
 		while(argDescriptors.length() != 0) {
 			switch(argDescriptors.charAt(0)) {
-			case 'L':
-				classes.add(descriptorToClass(argDescriptors.substring(1, argDescriptors.indexOf(';'))));
-				argDescriptors = argDescriptors.substring(argDescriptors.indexOf(';'));
-				break;
-			case 'I':
-				classes.add(int.class);
-				argDescriptors = argDescriptors.substring(1);
-				break;
-			case 'D':
-				classes.add(double.class);
-				argDescriptors = argDescriptors.substring(1);
-				break;
-			case 'F':
-				classes.add(float.class);
-				argDescriptors = argDescriptors.substring(1);
-				break;
-			case 'Z':
-				classes.add(boolean.class);
-				argDescriptors = argDescriptors.substring(1);
-				break;
-			case 'C':
-				classes.add(char.class);
-				argDescriptors = argDescriptors.substring(1);
-				break;
-			default:
-				argDescriptors = argDescriptors.substring(1); // Skip
-				break;
+				case 'L':
+					classes.add(descriptorToClass(argDescriptors.substring(1, argDescriptors.indexOf(';'))));
+					argDescriptors = argDescriptors.substring(argDescriptors.indexOf(';'));
+					break;
+				case 'I':
+					classes.add(int.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'D':
+					classes.add(double.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'F':
+					classes.add(float.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'Z':
+					classes.add(boolean.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'C':
+					classes.add(char.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				case 'B':
+					classes.add(byte.class);
+					argDescriptors = argDescriptors.substring(1);
+					break;
+				default:
+					argDescriptors = argDescriptors.substring(1); // Skip
+					break;
 			}
 			
 			//System.out.println(argDescriptors);
@@ -199,6 +208,10 @@ public class Descriptors {
 				break;
 			case 'C':
 				types.add("char");
+				argDescriptors = argDescriptors.substring(1);
+				break;
+			case 'B':
+				types.add("byte");
 				argDescriptors = argDescriptors.substring(1);
 				break;
 			default:

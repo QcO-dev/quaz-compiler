@@ -9,6 +9,7 @@ import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
 import quaz.compiler.compiler.opStack.nodes.LdcNode;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.value.BooleanNode;
+import quaz.compiler.parser.nodes.value.ByteNode;
 import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
@@ -202,6 +203,15 @@ public class ValueVisitor {
 		context.setLastDescriptor("C");
 		context.setLastWasConstant(true);
 		
+	}
+	
+	public void visitByteNode(Node node, Context context) {
+		
+		byte val = ((ByteNode) node).getVal();
+		
+		context.getOpStack().add(new IntInsnNode(Opcodes.BIPUSH, val));
+		context.setLastDescriptor("B");
+		context.setLastWasConstant(true);
 	}
 	
 }

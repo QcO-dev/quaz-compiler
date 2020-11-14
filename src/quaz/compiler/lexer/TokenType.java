@@ -10,6 +10,7 @@ public enum TokenType {
 	FLOAT,
 	STRING,
 	CHAR,
+	BYTE,
 	
 	LPAREN,
 	RPAREN,

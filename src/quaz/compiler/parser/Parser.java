@@ -25,6 +25,7 @@ import quaz.compiler.parser.nodes.function.ParameterListNode;
 import quaz.compiler.parser.nodes.function.ReturnNode;
 import quaz.compiler.parser.nodes.operation.BinaryOperationNode;
 import quaz.compiler.parser.nodes.value.BooleanNode;
+import quaz.compiler.parser.nodes.value.ByteNode;
 import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
@@ -956,6 +957,10 @@ public class Parser {
 		
 		else if(currentToken.getType() == TokenType.CHAR) {
 			return new CharNode(currentToken.getValue(), currentToken);
+		}
+		
+		else if(currentToken.getType() == TokenType.BYTE) {
+			return new ByteNode(currentToken.getValue(), currentToken);
 		}
 		
 		else if(currentToken.matches(TokenType.KEYWORD, "false")) {

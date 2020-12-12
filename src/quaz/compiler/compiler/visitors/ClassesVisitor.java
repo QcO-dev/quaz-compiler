@@ -128,6 +128,7 @@ public class ClassesVisitor {
 		String leftDesc = null;
 		String leftDescType = null;
 		
+		// Static
 		if(man.getLeft() instanceof VariableAccessNode && context.getTypeReferences().containsKey(man.getLeft().getValue())) {
 			
 			String desc = context.getTypeReferences().get(man.getLeft().getValue());
@@ -306,9 +307,23 @@ public class ClassesVisitor {
 	}
 	
 	private void memberAccess(Node right, String leftDesc, String leftDescType, OperationStack stack, MemberAccessNode man, Context context, boolean put) throws CompilerLogicException {
-		Class<?> parent = Descriptors.descriptorToClass(leftDesc);
 		
 		String variableName = ((VariableAccessNode) right).getName();
+		
+		if(Descriptors.descriptorIsArray(leftDescType)) {
+			
+			if(variableName.equals("length")) {
+				stack.push(new InsnNode(Opcodes.ARRAYLENGTH));
+				context.setLastDescriptor("I");
+				return;
+			}
+			else {
+				throw new CompilerLogicException("Field \'" + variableName + "\' in type " + Descriptors.descriptorToType(leftDescType) + " does not exist.", right.getStart(), right.getEnd());
+			}
+			
+		}
+		
+		Class<?> parent = Descriptors.descriptorToClass(leftDesc);
 		
 		boolean isStatic = false;
 		
@@ -391,7 +406,7 @@ public class ClassesVisitor {
 		
 		context.getCompilerInstance().visit(ian.getLengthExpr(), context);
 		
-		if(context.getLastDescriptor() != "I") {
+		if(!Descriptors.isInteger(context.getLastDescriptor())) {
 			throw new CompilerLogicException("Expected integer.", ian.getLengthExpr().getStart(), ian.getLengthExpr().getEnd());
 		}
 		
@@ -400,24 +415,22 @@ public class ClassesVisitor {
 		
 		String rawTypeDesc = Descriptors.removeArrayFromDescriptor(descriptor);
 		
-		//TODO MULTI DIM ARRAYS
-		
-		// For reference arrays
-		String typeGiven = Descriptors.removeArrayFromType(ian.getTypeName());
-		
-		String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
-
-		if(type == null) {
-			throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", ian.getStart(),
-					ian.getEnd());
-		}
-		
 		//TODO multi dim. arrays
 		
 		if(Descriptors.isPrimative(rawTypeDesc)) {
 			context.getOpStack().push(new IntInsnNode(Opcodes.NEWARRAY, Descriptors.primativeToOpcodeType(rawTypeDesc)));
 		}
 		else {
+			
+			String typeGiven = Descriptors.removeArrayFromType(ian.getTypeName());
+			
+			String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
+
+			if(type == null) {
+				throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", ian.getStart(),
+						ian.getEnd());
+			}
+			
 			context.getOpStack().push(new TypeNode(Opcodes.ANEWARRAY, type));
 			descriptor = "[" + Descriptors.typeToMethodDescriptor(type);
 		}

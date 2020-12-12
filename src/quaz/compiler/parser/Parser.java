@@ -24,6 +24,7 @@ import quaz.compiler.parser.nodes.function.FunctionCallNode;
 import quaz.compiler.parser.nodes.function.FunctionDefinitionNode;
 import quaz.compiler.parser.nodes.function.ParameterListNode;
 import quaz.compiler.parser.nodes.function.ReturnNode;
+import quaz.compiler.parser.nodes.operation.ArrayIndexNode;
 import quaz.compiler.parser.nodes.operation.BinaryOperationNode;
 import quaz.compiler.parser.nodes.value.BooleanNode;
 import quaz.compiler.parser.nodes.value.ByteNode;
@@ -946,13 +947,31 @@ public class Parser {
 		
 		advance(false);
 
-		while(currentToken.getType() == TokenType.DOT) {
-
-			advance(true);
-
-			Node right = factor();
-
-			left = new MemberAccessNode(left, right, start, currentToken.getEnd());
+		while(currentToken.getType() == TokenType.DOT || currentToken.getType() == TokenType.LSQBR) {
+			
+			if(currentToken.getType() == TokenType.LSQBR) {
+				
+				advance(true);
+				
+				Node index = expr();
+				
+				if(currentToken.getType() != TokenType.RSQBR) {
+					throw new UnexpectedTokenException("Expected ']'", currentToken);
+				}
+				
+				left = new ArrayIndexNode(left, index, start, currentToken.getEnd());
+				
+				advance(false);
+				
+			}
+			
+			else {
+				advance(true);
+	
+				Node right = factor();
+	
+				left = new MemberAccessNode(left, right, start, currentToken.getEnd());
+			}
 		}
 
 		return left;

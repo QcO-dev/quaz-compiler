@@ -7,4 +7,6 @@ public class OperationVisitor {
 	
 	public void visitBinaryOperationNode(Node node, Context context) {}
 	
+	public void visitArrayIndexNode(Node node, Context context) {}
+	
 }

@@ -67,8 +67,8 @@ public class Compiler implements Opcodes {
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 		mv.visitInsn(RETURN);
-		//TODO
-		mv.visitMaxs(1, 1);
+		
+		mv.visitMaxs(0, 0);
 		mv.visitEnd();
 		
 	}

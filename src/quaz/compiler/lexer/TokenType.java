@@ -16,6 +16,8 @@ public enum TokenType {
 	
 	LPAREN,
 	RPAREN,
+	LSQBR,
+	RSQBR,
 	EQUALS,
 	COLON,
 	SEMI,

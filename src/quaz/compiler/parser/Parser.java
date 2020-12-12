@@ -15,6 +15,7 @@ import quaz.compiler.parser.nodes.block.StatementsNode;
 import quaz.compiler.parser.nodes.block.WhileNode;
 import quaz.compiler.parser.nodes.classes.CastNode;
 import quaz.compiler.parser.nodes.classes.ImportNode;
+import quaz.compiler.parser.nodes.classes.InstanceArrayNode;
 import quaz.compiler.parser.nodes.classes.InstanceNode;
 import quaz.compiler.parser.nodes.classes.MemberAccessNode;
 import quaz.compiler.parser.nodes.classes.PackageNode;
@@ -82,6 +83,95 @@ public class Parser {
 		if(currentToken.getType() != TokenType.EOF)
 			currentToken = tokens[index];
 	}
+	
+	private Object[] typeName(boolean arrayLength) throws UnexpectedTokenException {
+		
+		String typeName;
+		
+		boolean isKeyword = false;
+		
+		Node length = null;
+		
+		if(currentToken.getType() == TokenType.IDENTIFIER || (currentToken.getType() == TokenType.KEYWORD && Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
+			typeName = currentToken.getValue();
+
+			advance(true);
+
+			while(currentToken.getType() == TokenType.DOT) {
+				advance(true);
+				if(currentToken.getType() != TokenType.IDENTIFIER
+						&& !(currentToken.getType() == TokenType.KEYWORD
+								&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
+					throw new UnexpectedTokenException("Expected type", currentToken);
+				}
+
+				typeName += "/" + currentToken.getValue();
+
+				advance(true);
+				
+			}
+			
+			if(currentToken.getType() == TokenType.LSQBR) {
+				typeName += "[]";
+				
+				advance(true);
+				
+				if(arrayLength) {
+					
+					length = expr();
+					
+				}
+				
+				if(currentToken.getType() != TokenType.RSQBR) {
+					throw new UnexpectedTokenException("Expected ']'", currentToken);
+				}
+				
+				if(!arrayLength)
+					advance(true);
+				
+				//TODO Only supports single dim. arrays.
+				
+			}
+
+		} else if(currentToken.getType() == TokenType.KEYWORD) {
+
+			if(Token.TYPE_KEYWORDS_ARRAY.contains(currentToken.getValue())) {
+				typeName = currentToken.getValue();
+				isKeyword = true;
+				advance(true);
+				
+				if(currentToken.getType() == TokenType.LSQBR) {
+					typeName += "[]";
+					
+					advance(true);
+					
+					if(arrayLength) {
+						
+						length = expr();
+						
+					}
+					
+					if(currentToken.getType() != TokenType.RSQBR) {
+						throw new UnexpectedTokenException("Expected ']'", currentToken);
+					}
+					
+					advance(true);
+					
+					// Only supports single dim. arrays.
+					
+				}
+				
+			} else {
+				throw new UnexpectedTokenException("Unexpected keyword", currentToken);
+			}
+
+		} else {
+			throw new UnexpectedTokenException("Expected type", currentToken);
+		}
+		
+		return new Object[] {typeName, isKeyword, length};
+		
+	}
 
 	private Node program() throws UnexpectedTokenException {
 
@@ -124,7 +214,7 @@ public class Parser {
 				advance(false);
 				continue;
 			}
-			//System.out.println(currentToken);
+			
 			throw new UnexpectedTokenException("Expected declaration", currentToken);
 		}
 
@@ -228,23 +318,12 @@ public class Parser {
 			
 			returnT = currentToken;
 			
-			returnType = currentToken.getValue();
-
-			advance(true);
-
-			while(currentToken.getType() == TokenType.DOT) {
-				advance(true);
-				if(currentToken.getType() != TokenType.IDENTIFIER && !(currentToken.getType() == TokenType.KEYWORD
-						&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
-					throw new UnexpectedTokenException("Expected type", currentToken);
-				}
-
-				returnType += "." + currentToken.getValue();
-				
-				returnT.setEnd(currentToken.getEnd());
-				
-				advance(true);
-			}
+			Object[] typeNameRes = typeName(false);
+			
+			if(!currentToken.matches(TokenType.KEYWORD, "void"))
+				returnType = (String) typeNameRes[0];
+			else
+				returnType = "void";
 			
 			returnT.setValue(returnType);
 		}
@@ -273,8 +352,6 @@ public class Parser {
 			Node arguments = callArguments();
 
 			Position end = currentToken.getEnd();
-
-			// advance(false);
 
 			return new FunctionCallNode(id, arguments, start, end);
 
@@ -310,27 +387,15 @@ public class Parser {
 			
 			advance(true);
 			
-			String typeName = "java.lang.Object";
+			String typeName = "java/lang/Object";
 			
 			if(currentToken.getType() == TokenType.ARROW) {
 				
 				advance(true);
 				
-				typeName = currentToken.getValue();
-
-				advance(true);
-
-				while(currentToken.getType() == TokenType.DOT) {
-					advance(true);
-					if(currentToken.getType() != TokenType.IDENTIFIER && !(currentToken.getType() == TokenType.KEYWORD
-							&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
-						throw new UnexpectedTokenException("Expected type", currentToken);
-					}
-
-					typeName += "." + currentToken.getValue();
-
-					advance(true);
-				}
+				Object[] typeNameRes = typeName(false);
+				
+				typeName = (String) typeNameRes[0];
 				
 			}
 			
@@ -358,9 +423,9 @@ public class Parser {
 		ArrayList<Node> args = new ArrayList<>();
 
 		if(currentToken.getType() != TokenType.RPAREN) {
-
+			
 			args.add(expr());
-
+			
 			eof();
 
 		}
@@ -370,7 +435,7 @@ public class Parser {
 			advance(true);
 
 			args.add(expr());
-
+			
 			eof();
 
 		}
@@ -449,37 +514,12 @@ public class Parser {
 
 			advance(true);
 
-			if(currentToken.getType() == TokenType.IDENTIFIER) {
-				typeName = currentToken.getValue();
-
-				advance(true);
-
-				while(currentToken.getType() == TokenType.DOT) {
-					advance(true);
-					if(currentToken.getType() != TokenType.IDENTIFIER
-							&& !(currentToken.getType() == TokenType.KEYWORD
-									&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
-						throw new UnexpectedTokenException("Expected type", currentToken);
-					}
-
-					typeName += "/" + currentToken.getValue();
-
-					advance(true);
-				}
-
-			} else if(currentToken.getType() == TokenType.KEYWORD) {
-
-				if(Token.TYPE_KEYWORDS_ARRAY.contains(currentToken.getValue())) {
-					typeName = currentToken.getValue();
-					isKeyword = true;
-					advance(true);
-				} else {
-					throw new UnexpectedTokenException("Unexpected keyword", currentToken);
-				}
-
-			} else {
-				throw new UnexpectedTokenException("Expected type", currentToken);
-			}
+			Object[] typeNameRes = typeName(false);
+			
+			typeName = (String) typeNameRes[0];
+			
+			isKeyword = (boolean) typeNameRes[1];
+			
 		}
 
 		if(currentToken.getType() != TokenType.IDENTIFIER) {
@@ -991,26 +1031,27 @@ public class Parser {
 		advance(true);
 
 		String typeName = "";
-
+		
 		if(currentToken.getType() == TokenType.IDENTIFIER) {
-			typeName = currentToken.getValue();
-
-			advance(true);
-
-			while(currentToken.getType() == TokenType.DOT) {
-				advance(true);
-				if(currentToken.getType() != TokenType.IDENTIFIER && !(currentToken.getType() == TokenType.KEYWORD
-						&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
-					throw new UnexpectedTokenException("Expected type", currentToken);
-				}
-
-				typeName += "/" + currentToken.getValue();
-
-				advance(true);
+			Object[] typeNameRes = typeName(true);
+			typeName = (String) typeNameRes[0];
+			
+			if(typeNameRes[2] != null) {
+				return new InstanceArrayNode(typeName, (Node) typeNameRes[2], null, start, currentToken.getEnd());
 			}
-
+			
 		} else {
-			throw new UnexpectedTokenException("Expected an identifier.", currentToken);
+			
+			Object[] typeNameRes = typeName(true);
+			
+			if(typeNameRes[2] == null) {
+				throw new UnexpectedTokenException("Expected identifier.", start, currentToken.getEnd());
+			}
+			
+			typeName = (String) typeNameRes[0];
+			
+			return new InstanceArrayNode(typeName, (Node) typeNameRes[2], null, start, currentToken.getEnd());
+			
 		}
 
 		Node arguments = callArguments();

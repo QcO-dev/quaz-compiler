@@ -3,7 +3,62 @@ package quaz.compiler.compiler;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.objectweb.asm.Opcodes;
+
 public class Descriptors {
+	
+	public static boolean descriptorIsArray(String descriptor) {
+		return descriptor.startsWith("[");
+	}
+	
+	public static int getArrayLengthFromDescriptor(String descriptor) {
+		return getArrayLengthFromDescriptor(descriptor, 0);
+	}
+	
+	public static int getArrayLengthFromDescriptor(String descriptor, int current) {
+		
+		int count = current;
+		
+		if(descriptor.startsWith("[")) {
+			count++;
+		}
+		
+		if(descriptor.substring(1).startsWith("[")) {
+			return getArrayLengthFromDescriptor(descriptor.substring(1), count);
+		}
+		
+		return count;
+		
+	}
+	
+	//TODO Multi dim. arrays
+	public static String removeArrayFromDescriptor(String descriptor) {
+		return descriptor.substring(descriptor.indexOf('[') + 1);
+	}
+	
+	public static String removeArrayFromType(String descriptor) {
+		
+		return descriptor.substring(0, descriptor.lastIndexOf('['));
+		
+	}
+	
+	public static int primativeToOpcodeType(String descriptor) {
+		
+		switch(descriptor) {
+			
+			case "I": return Opcodes.T_INT;
+			case "D": return Opcodes.T_DOUBLE;
+			case "F": return Opcodes.T_FLOAT;
+			case "Z": return Opcodes.T_BOOLEAN;
+			case "C": return Opcodes.T_CHAR;
+			case "B": return Opcodes.T_BYTE;
+			case "J": return Opcodes.T_LONG;
+			case "S": return Opcodes.T_SHORT;
+		}
+		
+		return 0;
+		
+	}
 	
 	public static boolean isPrimative(String descriptor) {
 		
@@ -117,7 +172,7 @@ public class Descriptors {
 			case "short": descriptor = "S"; break;
 			default:
 				if(type.endsWith("[]")) {
-					descriptor = "[" + typeToDescriptor(type.substring(0, type.length()-2));
+					descriptor = "[" + typeToMethodDescriptor(type.substring(0, type.length()-2));
 				}
 				else {
 					descriptor = "L" + type.replace('.', '/') + ";";

@@ -125,10 +125,20 @@ public class OperationVisitor {
 		}
 
 		switch(type) {
-			case EQUALS:
-				stack.push(new InsnNode(Opcodes.ASTORE));
+			case EQUALS: {
+				
+				LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
+				
+				if(var == null) {
+					throw new CompilerLogicException(
+							"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
+							bon.getLeft().getStart(), bon.getLeft().getEnd());
+				}
+				
+				stack.push(new VarNode(Opcodes.ASTORE, var.getIndex()));
 				context.setLastDescriptor(leftDesc);
 				break;
+			}
 				
 			case BOOL_TRI_EQ: {
 				Label falseL = new Label();

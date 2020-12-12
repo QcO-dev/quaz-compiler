@@ -10,6 +10,8 @@ public class ClassesVisitor {
 	
 	public void visitInstanceNode(Node node, Context context) {}
 	
+	public void visitInstanceArrayNode(Node node, Context context) {}
+	
 	public void visitMemberAccessNode(Node node, Context context) {}
 	
 	public void visitImportNode(Node node, Context context) throws CompilerLogicException {

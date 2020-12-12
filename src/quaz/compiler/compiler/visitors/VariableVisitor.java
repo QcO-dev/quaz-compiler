@@ -33,12 +33,38 @@ public class VariableVisitor {
 		
 		LocalVariables locals = context.getLocalVariables();
 		
-		//int index = locals.getNextIndex();
+		// TODO ARRAYS
+		String descriptor = Descriptors.typeToDescriptor(vdn.getTypeName());
+		
+		
+		if(Descriptors.descriptorIsArray(descriptor)) {
+			
+			if(vdn.isDefault()) {
+				stack.push(new InsnNode(Opcodes.ACONST_NULL));
+			} else {
+				context.getCompilerInstance().visit(vdn.getVal(), context);
+				
+				if(!context.getLastDescriptor().equals(descriptor)) {
+					throw new CompilerLogicException(
+							"Mismatched types in assignment. Expected " + vdn.getTypeName() + " but got "
+									+ Descriptors.descriptorToType(context.getLastDescriptor()),
+							vdn.getStart(), vdn.getEnd());
+				}
+			}
+			
+			stack.push(new VarNode(Opcodes.ASTORE, locals.getNextIndex()));
+			
+			locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), false));
+			
+			locals.incrementIndex();
+			
+			context.setLastWasConstant(false);
+			
+			return;
+		}
 		
 		if(vdn.isExplicit()) {
 			if(vdn.isKeyword()) {
-
-				String descriptor = Descriptors.typeToDescriptor(vdn.getTypeName());
 				
 				locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), true));
 				
@@ -75,7 +101,7 @@ public class VariableVisitor {
 					if(!context.getLastDescriptor().equals(descriptor)) {
 						
 						try {
-						Cast.primative(node, context.getLastDescriptor(), descriptor, stack, context);
+							Cast.primative(node, context.getLastDescriptor(), descriptor, stack, context);
 						} catch(CompilerLogicException e) {
 							throw new CompilerLogicException(
 									"Mismatched types in assignment. Expected " + vdn.getTypeName() + " but got "
@@ -174,9 +200,9 @@ public class VariableVisitor {
 
 				context.getCompilerInstance().visit(vdn.getVal(), context);
 
-				String descriptor = context.getLastDescriptor();
+				String desc = context.getLastDescriptor();
 				
-				String type = Descriptors.descriptorToType(descriptor);
+				String type = Descriptors.descriptorToType(desc);
 				
 				if(Token.TYPE_KEYWORDS_ARRAY.contains(type)) {
 					Label l0 = new Label();
@@ -185,8 +211,8 @@ public class VariableVisitor {
 					
 					generatePrimativeStoreValue(type, locals.getNextIndex(), stack);
 					
-					locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), true));
-					if(Descriptors.isWide(descriptor)) {
+					locals.put(name, new LocalVariable(name, desc, locals.getNextIndex(), true));
+					if(Descriptors.isWide(desc)) {
 						locals.incrementIndex();
 					}
 				} else {
@@ -195,10 +221,10 @@ public class VariableVisitor {
 					stack.push(new LineNumberNode(vdn.getStart().getLine(), l0));
 					stack.push(new VarNode(Opcodes.ASTORE, locals.getNextIndex()));
 					
-					locals.put(name, new LocalVariable(name, descriptor, locals.getNextIndex(), false));
+					locals.put(name, new LocalVariable(name, desc, locals.getNextIndex(), false));
 				}
 				
-				context.setLastDescriptor(descriptor);
+				context.setLastDescriptor(desc);
 			}
 
 		}

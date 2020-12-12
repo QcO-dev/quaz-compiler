@@ -16,6 +16,7 @@ import quaz.compiler.compiler.Descriptors;
 import quaz.compiler.compiler.opStack.OperationStack;
 import quaz.compiler.compiler.opStack.nodes.FieldNode;
 import quaz.compiler.compiler.opStack.nodes.InsnNode;
+import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
 import quaz.compiler.compiler.opStack.nodes.LabelNode;
 import quaz.compiler.compiler.opStack.nodes.LineNumberNode;
 import quaz.compiler.compiler.opStack.nodes.MethodNode;
@@ -23,6 +24,7 @@ import quaz.compiler.compiler.opStack.nodes.TypeNode;
 import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.classes.CastNode;
+import quaz.compiler.parser.nodes.classes.InstanceArrayNode;
 import quaz.compiler.parser.nodes.classes.InstanceNode;
 import quaz.compiler.parser.nodes.classes.MemberAccessNode;
 import quaz.compiler.parser.nodes.function.FunctionCallNode;
@@ -69,6 +71,38 @@ public class ClassesVisitor {
 		
 		Class<?>[] givenParams = Descriptors.descriptorToClasses("(" + descriptor + ")V");
 		
+		outer : for(Constructor<?> constructor : parent.getConstructors()) {
+			
+			Class<?>[] constParams = constructor.getParameterTypes();
+			
+			if(givenParams.length != constParams.length) {
+				continue outer;
+			}
+			
+			String desc = "";
+			
+			for(int i = 0; i < constParams.length; i++) {
+				
+				Class<?> klass = constParams[i];
+				if(!klass.isAssignableFrom(givenParams[i])) {
+					continue outer;
+				}
+				
+				desc += klass.descriptorString();
+				
+			}
+			
+			stack.push(new MethodNode(Opcodes.INVOKESPECIAL, type, "<init>", "(" + desc + ")V", false));
+			
+			context.setLastDescriptor("L" + type + ";");
+			context.setLastWasConstant(false);
+			
+			return;
+		}
+		
+		throw new CompilerLogicException("Constructor for type " + Descriptors.descriptorToType("L" + type + ";") + " does not exist.\nArgument types given: " + String.join(", ", Descriptors.descriptorToTypes("(" + descriptor + ")V")), in.getStart(), in.getEnd());
+		
+		/*
 		try {
 			Constructor<?> c = parent.getDeclaredConstructor(givenParams);
 			if(!Modifier.isPublic(c.getModifiers()))
@@ -79,11 +113,10 @@ public class ClassesVisitor {
 			e.printStackTrace();
 		}
 
-		//mv.visitMethodInsn(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false);
 		stack.push(new MethodNode(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false));
 		
 		context.setLastDescriptor("L" + type + ";");
-		context.setLastWasConstant(false);
+		context.setLastWasConstant(false);*/
 	}
 
 	public void visitMemberAccessNode(Node node, Context context, boolean root) throws CompilerLogicException {
@@ -351,5 +384,46 @@ public class ClassesVisitor {
 		context.setLastWasConstant(false);
 		
 	}
+	
+	public void visitInstanceArrayNode(Node node, Context context) throws CompilerLogicException {
+		
+		InstanceArrayNode ian = (InstanceArrayNode) node;
+		
+		context.getCompilerInstance().visit(ian.getLengthExpr(), context);
+		
+		if(context.getLastDescriptor() != "I") {
+			throw new CompilerLogicException("Expected integer.", ian.getLengthExpr().getStart(), ian.getLengthExpr().getEnd());
+		}
+		
+		// For primative arrays
+		String descriptor = Descriptors.typeToDescriptor(ian.getTypeName());
+		
+		String rawTypeDesc = Descriptors.removeArrayFromDescriptor(descriptor);
+		
+		//TODO MULTI DIM ARRAYS
+		
+		// For reference arrays
+		String typeGiven = Descriptors.removeArrayFromType(ian.getTypeName());
+		
+		String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
 
+		if(type == null) {
+			throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", ian.getStart(),
+					ian.getEnd());
+		}
+		
+		//TODO multi dim. arrays
+		
+		if(Descriptors.isPrimative(rawTypeDesc)) {
+			context.getOpStack().push(new IntInsnNode(Opcodes.NEWARRAY, Descriptors.primativeToOpcodeType(rawTypeDesc)));
+		}
+		else {
+			context.getOpStack().push(new TypeNode(Opcodes.ANEWARRAY, type));
+			descriptor = "[" + Descriptors.typeToMethodDescriptor(type);
+		}
+		
+		context.setLastDescriptor(descriptor);
+		
+	}
+	
 }

@@ -35,12 +35,13 @@ public class FunctionVisitor implements Opcodes {
 		
 		ParameterListNode pln = (ParameterListNode) fdn.getArguments();
 		
-		//TODO Fix this shambles
-		String descriptor = name.equals("main") ? "[Ljava/lang/String;" : "";
+		String descriptor = "";
 		
 		Context copy = context.copy();
 		
 		LocalVariables lvs = context.getLocalVariables();
+		
+		lvs.setNextIndex(0);
 		
 		for(Pair<Token, String> var : pln.getVars()) {
 			String typeGiven = var.getSecond();
@@ -50,9 +51,24 @@ public class FunctionVisitor implements Opcodes {
 				desc = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {
-				String type = typeGiven.contains(".") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				String varDesc = Descriptors.typeToDescriptor(typeGiven);
 				
-				desc = Descriptors.typeToMethodDescriptor(type);
+				int arrayCount = 0;
+				
+				if(Descriptors.descriptorIsArray(varDesc)) {
+					typeGiven = Descriptors.removeArrayFromType(typeGiven);
+					
+					arrayCount = Descriptors.getArrayLengthFromDescriptor(varDesc);
+				}
+				
+				String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				
+				if(type == null) {
+					throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", var.getFirst().getStart(),
+							var.getFirst().getEnd());
+				}
+				
+				desc = "[".repeat(arrayCount) + Descriptors.typeToMethodDescriptor(type);
 			}
 			
 			descriptor += desc;
@@ -88,9 +104,24 @@ public class FunctionVisitor implements Opcodes {
 				returnType = typeGiven;
 			}
 			else {
-				String type = typeGiven.contains(".") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				String retDesc = Descriptors.typeToDescriptor(typeGiven);
 				
-				returnType = type;
+				int arrayCount = 0;
+				
+				if(Descriptors.descriptorIsArray(retDesc)) {
+					typeGiven = Descriptors.removeArrayFromType(typeGiven);
+					
+					arrayCount = Descriptors.getArrayLengthFromDescriptor(retDesc);
+				}
+				
+				String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				
+				if(type == null) {
+					throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", fdn.getReturnType().getStart(),
+							fdn.getReturnType().getEnd());
+				}
+				
+				returnType = type.replace('/', '.') + "[]".repeat(arrayCount);
 			}
 		}
 		
@@ -213,7 +244,6 @@ public class FunctionVisitor implements Opcodes {
 		
 		String desc = context.getLastDescriptor();
 		
-		
 		String methodDesc = Descriptors.typeToMethodDescriptor(context.getMethodReturnType());
 		
 		if(!desc.equals(methodDesc)) {
@@ -226,36 +256,30 @@ public class FunctionVisitor implements Opcodes {
 			case "I":
 			case "S":
 				stack.push(new InsnNode(IRETURN));
-				context.setHasReturnedLast(true);
 				break;
 				
 			case "J":
 				stack.push(new InsnNode(LRETURN));
-				context.setHasReturnedLast(true);
 				break;
 				
 			case "D":
 				stack.push(new InsnNode(DRETURN));
-				context.setHasReturnedLast(true);
 				break;
 				
 			case "F":
 				stack.push(new InsnNode(FRETURN));
-				context.setHasReturnedLast(true);
 				break;
 				
 			case "Z":
 				stack.push(new InsnNode(IRETURN));
-				context.setHasReturnedLast(true);
 				break;
 			default:
 				stack.push(new InsnNode(ARETURN));
-				context.setHasReturnedLast(true);
 				break;
 		}
 		
+		context.setHasReturnedLast(true);
 		context.setLastWasConstant(false);
-		
 	}
 	
 	private void getDefaultReturn(OperationStack stack, Context context) {

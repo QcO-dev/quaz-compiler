@@ -142,6 +142,14 @@ public class Lexer {
 				tokens.add(new Token(TokenType.COLON, new Position(column, line, file)));
 			}
 			
+			else if(currentChar.equals("[")) {
+				tokens.add(new Token(TokenType.LSQBR, new Position(column, line, file)));
+			}
+			
+			else if(currentChar.equals("]")) {
+				tokens.add(new Token(TokenType.RSQBR, new Position(column, line, file)));
+			}
+			
 			else if(currentChar.equals("\"")) {
 				tokens.add(string());
 			}

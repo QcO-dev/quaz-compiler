@@ -22,5 +22,7 @@ public class QuazCompilerLauncher {
 			System.err.println(e.getMessage());
 		}
 	}
+	
+	// Let functions take in arrays. Allow for setting and getting of arrays. (can finally take in args!!)
 
 }

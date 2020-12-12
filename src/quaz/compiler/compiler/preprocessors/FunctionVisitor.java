@@ -3,6 +3,7 @@ package quaz.compiler.compiler.preprocessors;
 import quaz.compiler.compiler.Context;
 import quaz.compiler.compiler.Descriptors;
 import quaz.compiler.compiler.values.Function;
+import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.function.FunctionDefinitionNode;
@@ -11,7 +12,7 @@ import quaz.compiler.standardLibrary.Pair;
 
 public class FunctionVisitor {
 	
-	public void visitFunctionDefinitionNode(Node node, Context context) {
+	public void visitFunctionDefinitionNode(Node node, Context context) throws CompilerLogicException {
 		
 		FunctionDefinitionNode fdn = (FunctionDefinitionNode) node;
 		
@@ -19,8 +20,7 @@ public class FunctionVisitor {
 		
 		ParameterListNode pln = (ParameterListNode) fdn.getArguments();
 		
-		//TODO
-		String givenDescriptor = name.equals("main") ? "[Ljava/lang/String;" : "";
+		String givenDescriptor = "";
 		
 		for(Pair<Token, String> var : pln.getVars()) {
 			String typeGiven = var.getSecond();
@@ -30,9 +30,25 @@ public class FunctionVisitor {
 				desc = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {
-				String type = typeGiven.contains(".") ? typeGiven : context.getTypeReferences().get(typeGiven);
 				
-				desc = Descriptors.typeToMethodDescriptor(type);
+				String descriptor = Descriptors.typeToDescriptor(typeGiven);
+				
+				int arrayCount = 0;
+				
+				if(Descriptors.descriptorIsArray(descriptor)) {
+					typeGiven = Descriptors.removeArrayFromType(typeGiven);
+					
+					arrayCount = Descriptors.getArrayLengthFromDescriptor(descriptor);
+				}
+				
+				String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				
+				if(type == null) {
+					throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", var.getFirst().getStart(),
+							var.getFirst().getEnd());
+				}
+				
+				desc = "[".repeat(arrayCount) + Descriptors.typeToMethodDescriptor(type);
 			}
 			
 			givenDescriptor += desc;
@@ -48,9 +64,24 @@ public class FunctionVisitor {
 				returnType = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {
-				String type = typeGiven.contains(".") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				String descriptor = Descriptors.typeToDescriptor(typeGiven);
 				
-				returnType = Descriptors.typeToMethodDescriptor(type);
+				int arrayCount = 0;
+				
+				if(Descriptors.descriptorIsArray(descriptor)) {
+					typeGiven = Descriptors.removeArrayFromType(typeGiven);
+					
+					arrayCount = Descriptors.getArrayLengthFromDescriptor(descriptor);
+				}
+				
+				String type = typeGiven.contains("/") ? typeGiven : context.getTypeReferences().get(typeGiven);
+				
+				if(type == null) {
+					throw new CompilerLogicException("Unknown type " + typeGiven + " used in current scope", fdn.getReturnType().getStart(),
+							fdn.getReturnType().getEnd());
+				}
+				
+				returnType = "[".repeat(arrayCount) + Descriptors.typeToMethodDescriptor(type);
 			}
 		}
 		

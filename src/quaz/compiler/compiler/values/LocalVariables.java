@@ -22,4 +22,8 @@ public class LocalVariables extends HashMap<String, LocalVariable> {
 		nextIndex++;
 	}
 	
+	public void setNextIndex(int next) {
+		this.nextIndex = next;
+	}
+	
 }

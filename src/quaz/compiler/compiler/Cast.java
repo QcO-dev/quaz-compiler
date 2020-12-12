@@ -33,9 +33,11 @@ public class Cast {
 						context.setLastDescriptor("Z");
 						break;
 					case "C":
+						stack.push(new InsnNode(Opcodes.I2C));
 						context.setLastDescriptor("C");
 						break;
 					case "S":
+						stack.push(new InsnNode(Opcodes.I2S));
 						context.setLastDescriptor("S");
 						break;
 					case "J":
@@ -76,6 +78,7 @@ public class Cast {
 						context.setLastDescriptor("Z");
 						break;
 					case "S":
+						stack.push(new InsnNode(Opcodes.I2S));
 						context.setLastDescriptor("S");
 						break;
 					
@@ -164,14 +167,17 @@ public class Cast {
 						break;
 						
 					case "S":
+						stack.push(new InsnNode(Opcodes.I2S));
 						context.setLastDescriptor("S");
 						break;
 						
 					case "C":
+						stack.push(new InsnNode(Opcodes.I2C));
 						context.setLastDescriptor("C");
 						break;
 						
 					case "B":
+						stack.push(new InsnNode(Opcodes.I2B));
 						context.setLastDescriptor("B");
 						break;
 						

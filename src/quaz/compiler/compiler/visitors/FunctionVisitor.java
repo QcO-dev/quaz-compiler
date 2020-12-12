@@ -127,6 +127,8 @@ public class FunctionVisitor implements Opcodes {
 		
 		copy.setMethodReturnType(returnType);
 		
+		copy.getLocalVariables().setNextIndex(lvs.getNextIndex());
+		
 		visitor.visitCode();
 		
 		context.getCompilerInstance().visit(fdn.getStatement(), copy);

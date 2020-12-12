@@ -7,6 +7,23 @@ import org.objectweb.asm.Opcodes;
 
 public class Descriptors {
 	
+	public static boolean isInteger(String descriptor) {
+		
+		switch(descriptor) {
+			
+			case "I":
+			case "Z":
+			case "C":
+			case "B":
+			case "S":
+				return true;
+			
+		}
+		
+		return false;
+		
+	}
+	
 	public static boolean descriptorIsArray(String descriptor) {
 		return descriptor.startsWith("[");
 	}

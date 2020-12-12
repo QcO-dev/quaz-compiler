@@ -21,6 +21,7 @@ import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.lexer.TokenType;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.classes.MemberAccessNode;
+import quaz.compiler.parser.nodes.operation.ArrayIndexNode;
 import quaz.compiler.parser.nodes.operation.BinaryOperationNode;
 import quaz.compiler.parser.nodes.variable.VariableAccessNode;
 
@@ -37,6 +38,22 @@ public class OperationVisitor {
 			new ClassesVisitor().putMemberAccessNode(bon.getLeft(), context, bon.getRight());
 
 			return;
+		}
+		
+		if(bon.getLeft() instanceof ArrayIndexNode) {
+			
+			if(bon.getType() == TokenType.EQUALS) {
+				
+				setArray(bon, context);
+				
+				return;
+				
+			}
+			
+			else {
+				throw new CompilerLogicException("Invalid Operation", bon.getStart(), bon.getEnd());
+			}
+			
 		}
 		
 		String leftDesc = null;
@@ -2173,4 +2190,135 @@ public class OperationVisitor {
 		context.setLastWasConstant(false);
 	}
 	
+	public void visitArrayIndexNode(Node node, Context context) throws CompilerLogicException {
+		
+		ArrayIndexNode ain = (ArrayIndexNode) node;
+		
+		context.getCompilerInstance().visit(ain.getLeft(), context);
+		
+		if(!Descriptors.descriptorIsArray(context.getLastDescriptor())) {
+			throw new CompilerLogicException("Can only index arrays.", ain.getLeft().getStart(), ain.getLeft().getEnd());
+		}
+		
+		String arrayType = Descriptors.removeArrayFromDescriptor(context.getLastDescriptor());
+		
+		context.getCompilerInstance().visit(ain.getIndex(), context);
+		
+		if(!Descriptors.isInteger(context.getLastDescriptor())) {
+			throw new CompilerLogicException("Expected integer.", ain.getIndex().getStart(), ain.getIndex().getEnd());
+		}
+		
+		
+		switch(arrayType) {
+			
+			case "I":
+				context.getOpStack().push(new InsnNode(Opcodes.IALOAD));
+				break;
+			
+			case "D":
+				context.getOpStack().push(new InsnNode(Opcodes.DALOAD));
+				break;
+				
+			case "F":
+				context.getOpStack().push(new InsnNode(Opcodes.FALOAD));
+				break;
+				
+			case "Z":
+				context.getOpStack().push(new InsnNode(Opcodes.BALOAD));
+				break;
+				
+			case "C":
+				context.getOpStack().push(new InsnNode(Opcodes.CALOAD));
+				break;
+				
+			case "B":
+				context.getOpStack().push(new InsnNode(Opcodes.BALOAD));
+				break;
+				
+			case "J":
+				context.getOpStack().push(new InsnNode(Opcodes.LALOAD));
+				break;
+				
+			case "S":
+				context.getOpStack().push(new InsnNode(Opcodes.SALOAD));
+				break;
+			
+			default:
+				context.getOpStack().push(new InsnNode(Opcodes.AALOAD));
+				break;
+			
+		}
+		
+		context.setLastDescriptor(arrayType);
+		context.setLastWasConstant(false);
+	}
+	
+	private void setArray(BinaryOperationNode bon, Context context) throws CompilerLogicException {
+		
+		ArrayIndexNode ain = (ArrayIndexNode) bon.getLeft();
+		
+		context.getCompilerInstance().visit(ain.getLeft(), context);
+		
+		if(!Descriptors.descriptorIsArray(context.getLastDescriptor())) {
+			throw new CompilerLogicException("Can only index arrays.", ain.getLeft().getStart(), ain.getLeft().getEnd());
+		}
+		
+		String arrayType = Descriptors.removeArrayFromDescriptor(context.getLastDescriptor());
+		
+		context.getCompilerInstance().visit(ain.getIndex(), context);
+		
+		if(!Descriptors.isInteger(context.getLastDescriptor())) {
+			throw new CompilerLogicException("Expected integer.", ain.getIndex().getStart(), ain.getIndex().getEnd());
+		}
+		
+		context.getCompilerInstance().visit(bon.getRight(), context);
+		
+		if(!context.getLastDescriptor().equals(arrayType)) {
+			throw new CompilerLogicException("Expected " + Descriptors.descriptorToType(arrayType) + " but got " + Descriptors.descriptorToType(context.getLastDescriptor()), bon.getRight().getStart(), bon.getRight().getEnd());
+		}
+		
+		switch(arrayType) {
+			
+			case "I":
+				context.getOpStack().push(new InsnNode(Opcodes.IASTORE));
+				break;
+			
+			case "D":
+				context.getOpStack().push(new InsnNode(Opcodes.DASTORE));
+				break;
+				
+			case "F":
+				context.getOpStack().push(new InsnNode(Opcodes.FASTORE));
+				break;
+				
+			case "Z":
+				context.getOpStack().push(new InsnNode(Opcodes.BASTORE));
+				break;
+				
+			case "C":
+				context.getOpStack().push(new InsnNode(Opcodes.CASTORE));
+				break;
+				
+			case "B":
+				context.getOpStack().push(new InsnNode(Opcodes.BASTORE));
+				break;
+				
+			case "J":
+				context.getOpStack().push(new InsnNode(Opcodes.LASTORE));
+				break;
+				
+			case "S":
+				context.getOpStack().push(new InsnNode(Opcodes.SASTORE));
+				break;
+			
+			default:
+				context.getOpStack().push(new InsnNode(Opcodes.AASTORE));
+				break;
+			
+		}
+		
+		context.setLastDescriptor(arrayType);
+		context.setLastWasConstant(false);
+		
+	}
 }

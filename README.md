@@ -9,6 +9,7 @@ Designed to be easy to use, and yet still as powerful as native java.
 - Types
   - [x] Casting
   - [x] Classes
+  - [x] Arrays
   - [x] int
   - [x] double
   - [x] float
@@ -21,7 +22,7 @@ Designed to be easy to use, and yet still as powerful as native java.
 - Functions
   - [x] Define
   - [x] Call
-  - [x] Arguments + types (main automatically has String[])
+  - [x] Arguments + types
   - [x] Return + type
   - [ ] Non static
   - [ ] Private

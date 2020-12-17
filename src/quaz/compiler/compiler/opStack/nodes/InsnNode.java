@@ -33,6 +33,8 @@ public class InsnNode extends OpNode {
 			case Opcodes.FCONST_1: return 1f;
 			case Opcodes.FCONST_2: return 2f;
 			
+			case Opcodes.LCONST_0: return 0L;
+			case Opcodes.LCONST_1: return 1L;
 		}
 		
 		return opcode;

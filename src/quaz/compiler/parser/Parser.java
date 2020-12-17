@@ -26,6 +26,7 @@ import quaz.compiler.parser.nodes.function.ParameterListNode;
 import quaz.compiler.parser.nodes.function.ReturnNode;
 import quaz.compiler.parser.nodes.operation.ArrayIndexNode;
 import quaz.compiler.parser.nodes.operation.BinaryOperationNode;
+import quaz.compiler.parser.nodes.operation.UnaryOperationNode;
 import quaz.compiler.parser.nodes.value.BooleanNode;
 import quaz.compiler.parser.nodes.value.ByteNode;
 import quaz.compiler.parser.nodes.value.CharNode;
@@ -450,10 +451,9 @@ public class Parser {
 
 	private Node blockStatement() throws UnexpectedTokenException {
 
-		if(currentToken.getType() == TokenType.NEWLINE) {
+		if(currentToken.getType() == TokenType.NEWLINE || currentToken.getType() == TokenType.SEMI) {
 			Node s = statements();
 			advance(false);
-			//reverse();
 			return s;
 		}
 
@@ -902,10 +902,12 @@ public class Parser {
 		
 		Position start = currentToken.getStart();
 
-		Node left = factor();
+		Node left = unaryOperation();
 		
 		
 		String typeName;
+		
+		//TODO
 		
 		while(currentToken.matches(TokenType.KEYWORD, "as")) {
 			advance(true);
@@ -925,7 +927,7 @@ public class Parser {
 						&& Token.JAVA_NON_KEYWORDS_ARRAY.contains(currentToken.getValue()))) {
 					throw new UnexpectedTokenException("Expected type", currentToken);
 				}
-
+				
 				typeName += "." + currentToken.getValue();
 
 				advance(true);
@@ -936,6 +938,25 @@ public class Parser {
 
 		return left;
 		
+	}
+	
+	private Node unaryOperation() throws UnexpectedTokenException {
+		
+		Position start = currentToken.getStart();
+		
+		TokenType type = currentToken.getType();
+		
+		if(type == TokenType.PLUS || type == TokenType.MINUS || type == TokenType.BIT_NOT || type == TokenType.BOOL_NOT) {
+			
+			advance(true);
+			
+			Node right = unaryOperation();
+			
+			return new UnaryOperationNode(type, right, start, right.getEnd());
+			
+		}
+		
+		return factor();
 	}
 	
 	// 16

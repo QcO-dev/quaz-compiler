@@ -101,22 +101,7 @@ public class ClassesVisitor {
 		}
 		
 		throw new CompilerLogicException("Constructor for type " + Descriptors.descriptorToType("L" + type + ";") + " does not exist.\nArgument types given: " + String.join(", ", Descriptors.descriptorToTypes("(" + descriptor + ")V")), in.getStart(), in.getEnd());
-		
-		/*
-		try {
-			Constructor<?> c = parent.getDeclaredConstructor(givenParams);
-			if(!Modifier.isPublic(c.getModifiers()))
-				throw new CompilerLogicException("Constructor for type " + Descriptors.descriptorToType("L" + type + ";") + " is not accessible.\nArgument types given: " + String.join(", ", Descriptors.descriptorToTypes("(" + descriptor + ")V")), in.getStart(), in.getEnd());
-		} catch(NoSuchMethodException e) {
-			throw new CompilerLogicException("Constructor for type " + Descriptors.descriptorToType("L" + type + ";") + " does not exist.\nArgument types given: " + String.join(", ", Descriptors.descriptorToTypes("(" + descriptor + ")V")), in.getStart(), in.getEnd());
-		} catch(SecurityException e) {
-			e.printStackTrace();
-		}
 
-		stack.push(new MethodNode(Opcodes.INVOKESPECIAL, type, "<init>", "(" + descriptor + ")V", false));
-		
-		context.setLastDescriptor("L" + type + ";");
-		context.setLastWasConstant(false);*/
 	}
 
 	public void visitMemberAccessNode(Node node, Context context, boolean root) throws CompilerLogicException {
@@ -376,7 +361,7 @@ public class ClassesVisitor {
 		
 		String desc = "";
 		
-		if(Descriptors.typeIsPrimative(typeGiven)) {
+		if(Descriptors.typeIsPrimitive(typeGiven)) {
 			desc = Descriptors.typeToMethodDescriptor(typeGiven);			
 		}
 		else {
@@ -389,7 +374,7 @@ public class ClassesVisitor {
 		
 		OperationStack stack = context.getOpStack();
 		
-		if(Descriptors.isPrimative(leftDesc)) {
+		if(Descriptors.isPrimitive(leftDesc)) {
 			Cast.primative(node, leftDesc, desc, stack, context);
 		}
 		else {
@@ -410,15 +395,15 @@ public class ClassesVisitor {
 			throw new CompilerLogicException("Expected integer.", ian.getLengthExpr().getStart(), ian.getLengthExpr().getEnd());
 		}
 		
-		// For primative arrays
+		// For primitive arrays
 		String descriptor = Descriptors.typeToDescriptor(ian.getTypeName());
 		
 		String rawTypeDesc = Descriptors.removeArrayFromDescriptor(descriptor);
 		
 		//TODO multi dim. arrays
 		
-		if(Descriptors.isPrimative(rawTypeDesc)) {
-			context.getOpStack().push(new IntInsnNode(Opcodes.NEWARRAY, Descriptors.primativeToOpcodeType(rawTypeDesc)));
+		if(Descriptors.isPrimitive(rawTypeDesc)) {
+			context.getOpStack().push(new IntInsnNode(Opcodes.NEWARRAY, Descriptors.primitiveToOpcodeType(rawTypeDesc)));
 		}
 		else {
 			

@@ -59,7 +59,7 @@ public class Descriptors {
 		
 	}
 	
-	public static int primativeToOpcodeType(String descriptor) {
+	public static int primitiveToOpcodeType(String descriptor) {
 		
 		switch(descriptor) {
 			
@@ -77,7 +77,7 @@ public class Descriptors {
 		
 	}
 	
-	public static boolean isPrimative(String descriptor) {
+	public static boolean isPrimitive(String descriptor) {
 		
 		switch(descriptor) {
 			
@@ -98,7 +98,7 @@ public class Descriptors {
 		
 	}
 	
-	public static boolean typeIsPrimative(String type) {
+	public static boolean typeIsPrimitive(String type) {
 		
 		switch(type) {
 			

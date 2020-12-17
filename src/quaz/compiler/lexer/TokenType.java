@@ -37,6 +37,7 @@ public enum TokenType {
 	BIT_AND,
 	BIT_OR,
 	BIT_XOR,
+	BIT_NOT,
 	
 	BOOL_EQ,
 	BOOL_NE,

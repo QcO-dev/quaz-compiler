@@ -23,6 +23,7 @@ import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.classes.MemberAccessNode;
 import quaz.compiler.parser.nodes.operation.ArrayIndexNode;
 import quaz.compiler.parser.nodes.operation.BinaryOperationNode;
+import quaz.compiler.parser.nodes.operation.UnaryOperationNode;
 import quaz.compiler.parser.nodes.variable.VariableAccessNode;
 
 public class OperationVisitor {
@@ -70,6 +71,7 @@ public class OperationVisitor {
 			}
 			
 			leftDesc = var.getDescriptor();
+			context.setLastDescriptor(leftDesc);
 		}
 		else {
 			
@@ -86,7 +88,10 @@ public class OperationVisitor {
 		
 		switch(leftDesc) {
 			case "I":
-				intOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
+			case "C":
+			case "B":
+			case "S":
+				integerOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			case "D":
 				doubleOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
@@ -97,17 +102,8 @@ public class OperationVisitor {
 			case "Z":
 				booleanOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
-			case "C":
-				charOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
-				break;
-			case "B":
-				byteOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
-				break;
 			case "J":
 				longOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
-				break;
-			case "S":
-				shortOperation(bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
 			default:
 				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
@@ -293,10 +289,7 @@ public class OperationVisitor {
 	}
 	
 	private void ifLastWasConstantString(OperationStack stack, StringBuilder recipe, StringBuilder descriptor, Context context, Node left) throws CompilerLogicException {
-		//System.out.println(stack.peek());
 		OpNode oNode = stack.pop();
-		
-		//System.out.println(context.getLastDescriptor());
 		
 		if(oNode instanceof InsnNode) {
 			
@@ -350,7 +343,7 @@ public class OperationVisitor {
 		else if(oNode instanceof IntInsnNode) {
 			
 			if(context.getLastDescriptor().equals("C")) {
-				// Since oNode.getValue() returns an Object, directly casting to char doesn't work because the Object is an Integer which cannot be cast to Character. The primative
+				// Since oNode.getValue() returns an Object, directly casting to char doesn't work because the Object is an Integer which cannot be cast to Character. The primitive
 				// types, however, can be casted.
 				recipe.append( (char) (int) ((IntInsnNode) oNode).getValue());
 			} else {
@@ -358,7 +351,6 @@ public class OperationVisitor {
 			}
 		}
 		else if(oNode instanceof LdcNode) {
-			//System.out.println("LDC");
 			if(context.getLastDescriptor().equals("C")) {
 				recipe.append((char) (int) ((LdcNode) oNode).getValue());
 			} else {
@@ -371,32 +363,48 @@ public class OperationVisitor {
 		}
 	}
 	
-	private void intOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
-			throws CompilerLogicException {
-
+	private void integerOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements) throws CompilerLogicException {
+		
+		String leftDesc = context.getLastDescriptor();
+		
+		boolean isNotInt = !(leftDesc.equals("I") || leftDesc.equals("Z"));
+		
+		int opCode = 0;
+		
+		switch(leftDesc) {
+			case "C": opCode = Opcodes.I2C; break;
+			case "B": opCode = Opcodes.I2B; break;
+			case "S": opCode = Opcodes.I2S; break;
+		}
+		
 		context.getCompilerInstance().visit(bon.getRight(), context);
 
 		String rightDesc = context.getLastDescriptor();
 		
 		OperationStack stack = context.getOpStack();
 		
-		if(!rightDesc.equals("I")) {
+		if(!rightDesc.equals(leftDesc)) {
 
 			switch(rightDesc) {
 				case "D":
 					stack.push(new InsnNode(Opcodes.D2I));
+					if(isNotInt) stack.push(new InsnNode(opCode));
 					break;
 				case "F":
 					stack.push(new InsnNode(Opcodes.F2I));
+					if(isNotInt) stack.push(new InsnNode(opCode));
 					break;
 				case "Z":
 				case "C":
 				case "S":
+				case "I":
 				case "B":
+					if(isNotInt) stack.push(new InsnNode(opCode));
 					break;
 					
 				case "J":
 					stack.push(new InsnNode(Opcodes.L2I));
+					if(isNotInt) stack.push(new InsnNode(opCode));
 					break;
 				case "Ljava/lang/String;": {
 					if(type == TokenType.PLUS) {
@@ -407,7 +415,7 @@ public class OperationVisitor {
 					
 
 				default:
-					throw new CompilerLogicException("Expected int, got " + Descriptors.descriptorToType(rightDesc),
+					throw new CompilerLogicException("Expected " + Descriptors.descriptorToType(leftDesc) + ", got " + Descriptors.descriptorToType(rightDesc),
 							right.getStart(), right.getEnd());
 			}
 
@@ -416,40 +424,40 @@ public class OperationVisitor {
 		switch(type) {
 			case PLUS:
 				stack.push(new InsnNode(Opcodes.IADD));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 
 			case MINUS:
 				stack.push(new InsnNode(Opcodes.ISUB));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 
 			case MULTIPLY:
 				stack.push(new InsnNode(Opcodes.IMUL));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 			case DIVIDE:
 				stack.push(new InsnNode(Opcodes.IDIV));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 
 			case MODULUS:
 				stack.push(new InsnNode(Opcodes.IREM));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 
 			case BIT_OR:
 				stack.push(new InsnNode(Opcodes.IOR));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 			case BIT_AND:
 				stack.push(new InsnNode(Opcodes.IAND));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 				
 			case BIT_XOR:
 				stack.push(new InsnNode(Opcodes.IXOR));
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 				
 			case BOOL_TRI_EQ:
@@ -599,7 +607,7 @@ public class OperationVisitor {
 							bon.getLeft().getEnd());
 				}
 
-				context.setLastDescriptor("I");
+				context.setLastDescriptor(leftDesc);
 				break;
 			}
 
@@ -607,242 +615,7 @@ public class OperationVisitor {
 				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
 		}
 		context.setLastWasConstant(false);
-	}
-	
-	private void charOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
-			throws CompilerLogicException {
-
-		context.getCompilerInstance().visit(bon.getRight(), context);
-
-		String rightDesc = context.getLastDescriptor();
 		
-		OperationStack stack = context.getOpStack();
-		
-		if(!rightDesc.equals("C")) {
-
-			switch(rightDesc) {
-				case "D":
-					stack.push(new InsnNode(Opcodes.D2I));
-					break;
-				case "F":
-					stack.push(new InsnNode(Opcodes.F2I));
-					break;
-				case "Z":
-				case "I":
-				case "S":
-				case "B":
-					stack.push(new InsnNode(Opcodes.I2C));
-					break;
-					
-				case "Ljava/lang/String;": {
-					if(type == TokenType.PLUS) {
-						concatStrings(bon, stack, addedElements, context);
-						return;
-					}
-				}
-					
-
-				default:
-					throw new CompilerLogicException("Expected char, got " + Descriptors.descriptorToType(rightDesc),
-							right.getStart(), right.getEnd());
-			}
-
-		}
-		
-		switch(type) {
-			case PLUS:
-				stack.push(new InsnNode(Opcodes.IADD));
-				context.setLastDescriptor("C");
-				break;
-
-			case MINUS:
-				stack.push(new InsnNode(Opcodes.ISUB));
-				context.setLastDescriptor("C");
-				break;
-
-			case MULTIPLY:
-				stack.push(new InsnNode(Opcodes.IMUL));
-				context.setLastDescriptor("C");
-				break;
-			case DIVIDE:
-				stack.push(new InsnNode(Opcodes.IDIV));
-				context.setLastDescriptor("C");
-				break;
-
-			case MODULUS:
-				stack.push(new InsnNode(Opcodes.IREM));
-				context.setLastDescriptor("C");
-				break;
-
-			case BIT_OR:
-				stack.push(new InsnNode(Opcodes.IOR));
-				context.setLastDescriptor("C");
-				break;
-			case BIT_AND:
-				stack.push(new InsnNode(Opcodes.IAND));
-				context.setLastDescriptor("C");
-				break;
-				
-			case BIT_XOR:
-				stack.push(new InsnNode(Opcodes.IXOR));
-				context.setLastDescriptor("C");
-				break;
-				
-			case BOOL_TRI_EQ:
-			case BOOL_EQ: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_TRI_NE:
-			case BOOL_NE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-				
-			case EQUALS: {
-
-				if(bon.getLeft() instanceof VariableAccessNode) {
-					LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
-
-					if(var == null) {
-						throw new CompilerLogicException(
-								"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
-								bon.getLeft().getStart(), bon.getLeft().getEnd());
-					}
-
-					stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
-				}
-
-				else {
-					throw new CompilerLogicException("Can only assign to variables", bon.getLeft().getStart(),
-							bon.getLeft().getEnd());
-				}
-
-				context.setLastDescriptor("C");
-				break;
-			}
-
-			default:
-				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
-		}
-		context.setLastWasConstant(false);
 	}
 
 	private void doubleOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
@@ -1477,237 +1250,7 @@ public class OperationVisitor {
 		context.setLastDescriptor("Z");
 		context.setLastWasConstant(false);
 	}
-	
-	private void byteOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
-			throws CompilerLogicException {
 
-		context.getCompilerInstance().visit(bon.getRight(), context);
-
-		String rightDesc = context.getLastDescriptor();
-		
-		OperationStack stack = context.getOpStack();
-		
-		if(!rightDesc.equals("B")) {
-
-			switch(rightDesc) {
-				case "Z":
-				case "I":
-				case "C":
-				case "S":
-					stack.push(new InsnNode(Opcodes.I2B));
-					break;
-					
-				case "Ljava/lang/String;": {
-					if(type == TokenType.PLUS) {
-						concatStrings(bon, stack, addedElements, context);
-						return;
-					}
-				}
-					
-
-				default:
-					throw new CompilerLogicException("Expected byte, got " + Descriptors.descriptorToType(rightDesc),
-							right.getStart(), right.getEnd());
-			}
-
-		}
-		
-		switch(type) {
-			case PLUS:
-				stack.push(new InsnNode(Opcodes.IADD));
-				context.setLastDescriptor("B");
-				break;
-
-			case MINUS:
-				stack.push(new InsnNode(Opcodes.ISUB));
-				context.setLastDescriptor("B");
-				break;
-
-			case MULTIPLY:
-				stack.push(new InsnNode(Opcodes.IMUL));
-				context.setLastDescriptor("B");
-				break;
-			case DIVIDE:
-				stack.push(new InsnNode(Opcodes.IDIV));
-				context.setLastDescriptor("B");
-				break;
-
-			case MODULUS:
-				stack.push(new InsnNode(Opcodes.IREM));
-				context.setLastDescriptor("B");
-				break;
-
-			case BIT_OR:
-				stack.push(new InsnNode(Opcodes.IOR));
-				context.setLastDescriptor("B");
-				break;
-			case BIT_AND:
-				stack.push(new InsnNode(Opcodes.IAND));
-				context.setLastDescriptor("B");
-				break;
-				
-			case BIT_XOR:
-				stack.push(new InsnNode(Opcodes.IXOR));
-				context.setLastDescriptor("B");
-				break;
-				
-			case BOOL_TRI_EQ:
-			case BOOL_EQ: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_TRI_NE:
-			case BOOL_NE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-				
-			case EQUALS: {
-
-				if(bon.getLeft() instanceof VariableAccessNode) {
-					LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
-
-					if(var == null) {
-						throw new CompilerLogicException(
-								"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
-								bon.getLeft().getStart(), bon.getLeft().getEnd());
-					}
-
-					stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
-				}
-
-				else {
-					throw new CompilerLogicException("Can only assign to variables", bon.getLeft().getStart(),
-							bon.getLeft().getEnd());
-				}
-
-				context.setLastDescriptor("B");
-				break;
-			}
-
-			default:
-				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
-		}
-		context.setLastWasConstant(false);
-	}
-	
 	private void longOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
 			throws CompilerLogicException {
 
@@ -1960,236 +1503,6 @@ public class OperationVisitor {
 		context.setLastWasConstant(false);
 	}
 	
-	private void shortOperation(BinaryOperationNode bon, TokenType type, Node right, Context context, int addedElements)
-			throws CompilerLogicException {
-
-		context.getCompilerInstance().visit(bon.getRight(), context);
-
-		String rightDesc = context.getLastDescriptor();
-		
-		OperationStack stack = context.getOpStack();
-		
-		if(!rightDesc.equals("S")) {
-
-			switch(rightDesc) {
-				case "Z":
-				case "I":
-				case "C":
-				case "B":
-					stack.push(new InsnNode(Opcodes.I2S));
-					break;
-					
-				case "Ljava/lang/String;": {
-					if(type == TokenType.PLUS) {
-						concatStrings(bon, stack, addedElements, context);
-						return;
-					}
-				}
-					
-
-				default:
-					throw new CompilerLogicException("Expected short, got " + Descriptors.descriptorToType(rightDesc),
-							right.getStart(), right.getEnd());
-			}
-
-		}
-		
-		switch(type) {
-			case PLUS:
-				stack.push(new InsnNode(Opcodes.IADD));
-				context.setLastDescriptor("S");
-				break;
-
-			case MINUS:
-				stack.push(new InsnNode(Opcodes.ISUB));
-				context.setLastDescriptor("S");
-				break;
-
-			case MULTIPLY:
-				stack.push(new InsnNode(Opcodes.IMUL));
-				context.setLastDescriptor("S");
-				break;
-			case DIVIDE:
-				stack.push(new InsnNode(Opcodes.IDIV));
-				context.setLastDescriptor("S");
-				break;
-
-			case MODULUS:
-				stack.push(new InsnNode(Opcodes.IREM));
-				context.setLastDescriptor("S");
-				break;
-
-			case BIT_OR:
-				stack.push(new InsnNode(Opcodes.IOR));
-				context.setLastDescriptor("S");
-				break;
-			case BIT_AND:
-				stack.push(new InsnNode(Opcodes.IAND));
-				context.setLastDescriptor("S");
-				break;
-				
-			case BIT_XOR:
-				stack.push(new InsnNode(Opcodes.IXOR));
-				context.setLastDescriptor("S");
-				break;
-				
-			case BOOL_TRI_EQ:
-			case BOOL_EQ: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPNE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_TRI_NE:
-			case BOOL_NE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPEQ, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_LE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPGT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GT: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLE, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-			
-			case BOOL_GE: {
-				Label falseL = new Label();
-				Label end = new Label();
-				
-				stack.push(new JumpNode(Opcodes.IF_ICMPLT, falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_1));
-				
-				stack.push(new JumpNode(Opcodes.GOTO, end));
-				
-				stack.push(new LabelNode(falseL));
-				
-				stack.push(new InsnNode(Opcodes.ICONST_0));
-				
-				stack.push(new LabelNode(end));
-				
-				context.setLastDescriptor("Z");
-				
-				break;
-			}
-				
-			case EQUALS: {
-
-				if(bon.getLeft() instanceof VariableAccessNode) {
-					LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
-
-					if(var == null) {
-						throw new CompilerLogicException(
-								"Variable \'" + bon.getLeft().getValue() + "\' does not exist in the current scope.",
-								bon.getLeft().getStart(), bon.getLeft().getEnd());
-					}
-
-					stack.push(new VarNode(Opcodes.ISTORE, var.getIndex()));
-				}
-
-				else {
-					throw new CompilerLogicException("Can only assign to variables", bon.getLeft().getStart(),
-							bon.getLeft().getEnd());
-				}
-
-				context.setLastDescriptor("S");
-				break;
-			}
-
-			default:
-				throw new CompilerLogicException("Invalid Operation", right.getStart(), right.getEnd());
-		}
-		context.setLastWasConstant(false);
-	}
-	
 	public void visitArrayIndexNode(Node node, Context context) throws CompilerLogicException {
 		
 		ArrayIndexNode ain = (ArrayIndexNode) node;
@@ -2321,4 +1634,262 @@ public class OperationVisitor {
 		context.setLastWasConstant(false);
 		
 	}
+
+	public void visitUnaryOperationNode(Node node, Context context) throws CompilerLogicException {
+		
+		UnaryOperationNode uon = (UnaryOperationNode) node;
+		
+		TokenType type = uon.getType();
+		
+		context.getCompilerInstance().visit(uon.getRight(), context);
+		
+		String desc = context.getLastDescriptor();
+		
+		switch(desc) {
+			
+			case "I":
+			case "Z":
+			case "C":
+			case "B":
+			case "S":
+				integerUnaryOperation(desc, type, uon, context);
+				break;
+				
+			case "J":
+				longUnaryOperation(desc, type, uon, context);
+				break;
+				
+			case "D":
+				doubleUnaryOperation(desc, type, uon, context);
+				break;
+				
+			case "F":
+				floatUnaryOperation(desc, type, uon, context);
+				break;
+			
+		}
+		
+	}
+	
+	private void integerUnaryOperation(String desc, TokenType type, UnaryOperationNode uon, Context context) throws CompilerLogicException {
+		
+		OperationStack stack = context.getOpStack();
+		
+		switch(type) {
+			
+			case BIT_NOT: {
+				
+				stack.push(new InsnNode(Opcodes.ICONST_M1));
+				stack.push(new InsnNode(Opcodes.IXOR));
+				
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case PLUS: {
+				// In Java, the unary plus extends to an integer.
+				context.setLastDescriptor("I");
+				break;
+			}
+			
+			case MINUS: {
+				
+				stack.push(new InsnNode(Opcodes.INEG));
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case BOOL_NOT: {
+				
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			default:
+				throw new CompilerLogicException("Invalid Operation", uon.getStart(), uon.getEnd());
+		}
+		
+	}
+	
+	private void longUnaryOperation(String desc, TokenType type, UnaryOperationNode uon, Context context) throws CompilerLogicException {
+		
+		OperationStack stack = context.getOpStack();
+		
+		switch(type) {
+			
+			case BIT_NOT: {
+				
+				stack.push(new LdcNode(-1L));
+				stack.push(new InsnNode(Opcodes.LXOR));
+				
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case PLUS: {
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case MINUS: {
+				
+				stack.push(new InsnNode(Opcodes.LNEG));
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case BOOL_NOT: {
+				
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.LCONST_0));
+				
+				stack.push(new InsnNode(Opcodes.LCMP));
+				
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			default:
+				throw new CompilerLogicException("Invalid Operation", uon.getStart(), uon.getEnd());
+		}
+		
+	}
+	
+	private void doubleUnaryOperation(String desc, TokenType type, UnaryOperationNode uon, Context context) throws CompilerLogicException {
+		
+		OperationStack stack = context.getOpStack();
+		
+		switch(type) {
+			
+			case PLUS: {
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case MINUS: {
+				
+				stack.push(new InsnNode(Opcodes.DNEG));
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case BOOL_NOT: {
+				
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.DCONST_0));
+				
+				stack.push(new InsnNode(Opcodes.DCMPL));
+				
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			default:
+				throw new CompilerLogicException("Invalid Operation", uon.getStart(), uon.getEnd());
+		}
+		
+	}
+	
+	private void floatUnaryOperation(String desc, TokenType type, UnaryOperationNode uon, Context context) throws CompilerLogicException {
+		
+		OperationStack stack = context.getOpStack();
+		
+		switch(type) {
+			
+			case PLUS: {
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case MINUS: {
+				
+				stack.push(new InsnNode(Opcodes.FNEG));
+				
+				context.setLastDescriptor(desc);
+				break;
+			}
+			
+			case BOOL_NOT: {
+				
+				Label falseL = new Label();
+				Label end = new Label();
+				
+				stack.push(new InsnNode(Opcodes.FCONST_0));
+				
+				stack.push(new InsnNode(Opcodes.FCMPL));
+				
+				stack.push(new JumpNode(Opcodes.IFNE, falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_1));
+
+				stack.push(new JumpNode(Opcodes.GOTO, end));
+				
+				stack.push(new LabelNode(falseL));
+				
+				stack.push(new InsnNode(Opcodes.ICONST_0));
+				
+				stack.push(new LabelNode(end));
+				
+				context.setLastDescriptor("Z");
+				
+				break;
+			}
+			
+			default:
+				throw new CompilerLogicException("Invalid Operation", uon.getStart(), uon.getEnd());
+		}
+		
+	}
+	
 }

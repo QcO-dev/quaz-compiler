@@ -388,7 +388,7 @@ public class Cast {
 			
 		}
 		
-		if(Descriptors.isPrimative(desc)) {
+		if(Descriptors.isPrimitive(desc)) {
 			throw new CompilerLogicException("Cannot cast from " + Descriptors.descriptorToType(leftDesc) + " to " + Descriptors.descriptorToType(desc), node.getStart(), node.getEnd());
 		}
 		

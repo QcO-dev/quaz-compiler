@@ -9,4 +9,6 @@ public class OperationVisitor {
 	
 	public void visitArrayIndexNode(Node node, Context context) {}
 	
+	public void visitUnaryOperationNode(Node node, Context context) {}
+	
 }

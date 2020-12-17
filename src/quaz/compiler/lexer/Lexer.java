@@ -110,6 +110,10 @@ public class Lexer {
 				tokens.add(minus());
 			}
 			
+			else if(currentChar.equals("~")) {
+				tokens.add(new Token(TokenType.BIT_NOT, new Position(column, line, file)));
+			}
+			
 			else if(currentChar.equals(";")) {
 				tokens.add(new Token(TokenType.SEMI, new Position(column, line, file)));
 			}

@@ -47,7 +47,7 @@ public class FunctionVisitor implements Opcodes {
 			String typeGiven = var.getSecond();
 			String desc = "";
 			
-			if(Descriptors.typeIsPrimative(typeGiven)) {
+			if(Descriptors.typeIsPrimitive(typeGiven)) {
 				desc = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {
@@ -77,7 +77,7 @@ public class FunctionVisitor implements Opcodes {
 				lvs.incrementIndex();
 			}
 			
-			copy.getLocalVariables().put(var.getFirst().getValue(), new LocalVariable(var.getFirst().getValue(), desc, lvs.getNextIndex(), Descriptors.isPrimative(desc)));
+			copy.getLocalVariables().put(var.getFirst().getValue(), new LocalVariable(var.getFirst().getValue(), desc, lvs.getNextIndex(), Descriptors.isPrimitive(desc)));
 			lvs.incrementIndex();
 		}
 		
@@ -100,7 +100,7 @@ public class FunctionVisitor implements Opcodes {
 			
 			String typeGiven = fdn.getReturnType().getValue();
 			
-			if(Descriptors.typeIsPrimative(typeGiven)) {
+			if(Descriptors.typeIsPrimitive(typeGiven)) {
 				returnType = typeGiven;
 			}
 			else {
@@ -292,7 +292,7 @@ public class FunctionVisitor implements Opcodes {
 			return;
 		}
 		
-		if(Descriptors.typeIsPrimative(context.getMethodReturnType())) {
+		if(Descriptors.typeIsPrimitive(context.getMethodReturnType())) {
 			switch(context.getMethodReturnType()) {
 				case "char":
 				case "byte":

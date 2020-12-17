@@ -26,7 +26,7 @@ public class FunctionVisitor {
 			String typeGiven = var.getSecond();
 			String desc = "";
 			
-			if(Descriptors.typeIsPrimative(typeGiven)) {
+			if(Descriptors.typeIsPrimitive(typeGiven)) {
 				desc = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {
@@ -60,7 +60,7 @@ public class FunctionVisitor {
 			
 			String typeGiven = fdn.getReturnType().getValue();
 			
-			if(Descriptors.typeIsPrimative(typeGiven)) {
+			if(Descriptors.typeIsPrimitive(typeGiven)) {
 				returnType = Descriptors.typeToMethodDescriptor(typeGiven);
 			}
 			else {

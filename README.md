@@ -36,12 +36,13 @@ Designed to be easy to use, and yet still as powerful as native java.
   - [x] If / else if / else
   - [x] Basic for (e.g. `for(var i = 0; i < 5; i = i + 1)`)
   - [x] while
-  
-Also implemented are binary operators `+, -, /, *, %, &, |, ^, &&, ||, ==, !=, ===, !==, <, <=, >, >=`
+- Operators
+  - [x] binary operators `+, -, /, *, %, &, |, ^, &&, ||, ==, !=, ===, !==, <, <=, >, >=`
+  - [x] unary operators `-, +, !, ~`
 
 These binary operators offer impicit casting between primative types. I.e. `1.5D / 2`
 
-Unary operations `-, +, !, ~` are planned, as when as binary operation `**`.
+Binary operation `**` planned.
 Operator Overloading will also be implemented, and is currently supported for the == and != operator, which calls the object's `equals` method. Use `===` and `!==` operators for the java style of equal operators.
 
 # Builtin Functions

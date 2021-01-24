@@ -135,7 +135,7 @@ public class CliHandler {
 
 			Lexer lexer = new Lexer();
 
-			Token[] tokens = lexer.lex(f, text);
+			Token[] tokens = lexer.lex(f, text, null);
 
 			if(lex) {
 				Arrays.asList(tokens).forEach(System.out::println);

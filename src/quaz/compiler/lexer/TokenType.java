@@ -9,6 +9,7 @@ public enum TokenType {
 	DOUBLE,
 	FLOAT,
 	STRING,
+	EXPR_STRING,
 	CHAR,
 	BYTE,
 	LONG,

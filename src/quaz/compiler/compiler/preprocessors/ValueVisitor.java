@@ -23,4 +23,6 @@ public class ValueVisitor {
 	
 	public void visitShortNode(Node node, Context context) {}
 	
+	public void visitExprStringNode(Node node, Context context) {}
+	
 }

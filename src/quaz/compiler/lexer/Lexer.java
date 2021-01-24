@@ -2,6 +2,7 @@ package quaz.compiler.lexer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 import quaz.compiler.exception.IndentionLevelException;
 import quaz.compiler.exception.InvalidCharacterException;
@@ -20,15 +21,18 @@ public class Lexer {
 	private int column = 0;
 	private File file;
 	
-	public Token[] lex(File file, String text) throws InvalidCharacterException, IndentionLevelException, InvalidEscapeException, InvalidNumberException {
+	public Token[] lex(File file, String text, String stop) throws InvalidCharacterException, IndentionLevelException, InvalidEscapeException, InvalidNumberException {
 		this.text = text;
 		this.file = file;
 		
 		advance();
-		
 		ArrayList<Token> tokens = new ArrayList<>();
 		
 		while(currentChar != null) {
+			
+			if(currentChar.equals(stop)) {
+				break;
+			}
 			
 			if(currentChar.matches("[ \t\r]")) {
 				advance();
@@ -182,7 +186,6 @@ public class Lexer {
 		}
 		
 		return tokens.toArray(new Token[] {});
-		
 	}
 	
 	private void advance() {
@@ -632,7 +635,7 @@ public class Lexer {
 		
 	}
 
-	private Token string() throws InvalidEscapeException {
+	private Token string() throws InvalidEscapeException, InvalidCharacterException, IndentionLevelException, InvalidNumberException {
 		
 		Position start = new Position(column, line, file);
 		
@@ -640,7 +643,11 @@ public class Lexer {
 		
 		advance();
 		
+		ArrayList<Token[]> exprString = new ArrayList<>();
+		
+		boolean isExprString = false;
 		boolean escape = false;
+		boolean dollar = false;
 		
 		while(currentChar != null && ( escape || !currentChar.equals("\""))) {
 			
@@ -650,6 +657,41 @@ public class Lexer {
 				continue;
 			}
 			
+			if(dollar) {
+				dollar = false;
+				if(currentChar.equals("{")) {
+					isExprString = true;
+					advance();
+					
+					Lexer lexer = new Lexer();
+					
+					Token[] toks = lexer.lex(file, this.text.substring(index - 1), "}");
+					
+					this.index = this.index + lexer.index - 1;
+					
+					// Skip the '}' token
+					advance();
+					
+					// Removes the last DEDENT token from the lexer
+					if(toks[toks.length - 1].getType() == TokenType.DEDENT) {
+						ArrayList<Token> tokens = new ArrayList<>(List.of(toks));
+						
+						tokens.remove(toks.length - 1);
+						
+						toks = tokens.toArray(new Token[] {});
+					}
+					
+					exprString.add(toks);
+					
+					value += "\u0001";
+					
+					continue;
+					
+				} else {
+					value += "$";
+				}
+			}
+			
 			if(escape) {
 				
 				escape = false;
@@ -657,6 +699,10 @@ public class Lexer {
 				switch(currentChar) {
 					case "\\":
 						value += "\\";
+						break;
+					case "$":
+						value += "$";
+						dollar = false;
 						break;
 					case "b":
 						value += "\b";
@@ -683,10 +729,20 @@ public class Lexer {
 				continue;
 			}
 			
+			if(currentChar.equals("$")) {
+				dollar = true;
+				advance();
+				continue;
+			}
+			
 			value += currentChar;
 			
 			advance();
 			
+		}
+		
+		if(isExprString) {
+			return new ExprStringToken(exprString.toArray(new Token[][] {}), value, start, new Position(column, line, file));
 		}
 		
 		return new Token(TokenType.STRING, value, start, new Position(column, line, file));

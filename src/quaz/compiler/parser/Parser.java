@@ -3,6 +3,7 @@ package quaz.compiler.parser;
 import java.util.ArrayList;
 
 import quaz.compiler.exception.UnexpectedTokenException;
+import quaz.compiler.lexer.ExprStringToken;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.lexer.TokenType;
 import quaz.compiler.parser.nodes.Node;
@@ -31,6 +32,7 @@ import quaz.compiler.parser.nodes.value.BooleanNode;
 import quaz.compiler.parser.nodes.value.ByteNode;
 import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
+import quaz.compiler.parser.nodes.value.ExprStringNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
 import quaz.compiler.parser.nodes.value.LongNode;
@@ -47,7 +49,7 @@ public class Parser {
 	private Token currentToken;
 	private Token[] tokens;
 
-	private static Token EOF_TOKEN;
+	private Token EOF_TOKEN;
 
 	public Node parse(Token[] tokens) throws UnexpectedTokenException {
 
@@ -65,7 +67,7 @@ public class Parser {
 		Token prevToken = currentToken;
 		currentToken = index >= tokens.length ? EOF_TOKEN : tokens[index];
 
-		if(eof && currentToken == EOF_TOKEN) {
+		if(eof && currentToken.getType() == TokenType.EOF) {
 			throw new UnexpectedTokenException("Unexpected EOF", prevToken.getEnd(), prevToken.getEnd());
 		}
 
@@ -443,7 +445,7 @@ public class Parser {
 		}
 
 		if(currentToken.getType() != TokenType.RPAREN) {
-			throw new UnexpectedTokenException("Expected ')'", currentToken);
+			throw new UnexpectedTokenException("Expected ')'" + currentToken.getType(), currentToken);
 		}
 
 		return new ArgumentListNode(args.toArray(new Node[] {}), start, currentToken.getEnd());
@@ -1024,7 +1026,31 @@ public class Parser {
 		else if(currentToken.getType() == TokenType.STRING) {
 			return new StringNode(currentToken.getValue(), currentToken);
 		}
+		
+		else if(currentToken.getType() == TokenType.EXPR_STRING) {
+			
+			ExprStringToken token = (ExprStringToken) currentToken;
+			
+			ArrayList<Node> values = new ArrayList<>();
+			
+			for(Token[] toks : token.getExprs()) {
+				
+				Parser parser = new Parser();
+				
+				parser.tokens = toks;
 
+				parser.EOF_TOKEN = new Token(TokenType.EOF, parser.tokens[parser.tokens.length - 1].getEnd());
+
+				parser.advance(false);
+				
+				Node value = parser.expr();
+				
+				values.add(value);
+			}
+			
+			return new ExprStringNode(currentToken.getValue(), values.toArray(new Node[] {}), currentToken);
+		}
+		
 		else if(currentToken.getType() == TokenType.INT) {
 			return new IntNode(currentToken.getValue(), currentToken);
 		}

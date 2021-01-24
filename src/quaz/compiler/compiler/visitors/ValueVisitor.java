@@ -1,17 +1,22 @@
 package quaz.compiler.compiler.visitors;
 
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 
 import quaz.compiler.compiler.Context;
+import quaz.compiler.compiler.Compiler;
 import quaz.compiler.compiler.opStack.OperationStack;
 import quaz.compiler.compiler.opStack.nodes.InsnNode;
 import quaz.compiler.compiler.opStack.nodes.IntInsnNode;
+import quaz.compiler.compiler.opStack.nodes.InvokeDynamicNode;
 import quaz.compiler.compiler.opStack.nodes.LdcNode;
+import quaz.compiler.exception.CompilerLogicException;
 import quaz.compiler.parser.nodes.Node;
 import quaz.compiler.parser.nodes.value.BooleanNode;
 import quaz.compiler.parser.nodes.value.ByteNode;
 import quaz.compiler.parser.nodes.value.CharNode;
 import quaz.compiler.parser.nodes.value.DoubleNode;
+import quaz.compiler.parser.nodes.value.ExprStringNode;
 import quaz.compiler.parser.nodes.value.FloatNode;
 import quaz.compiler.parser.nodes.value.IntNode;
 import quaz.compiler.parser.nodes.value.LongNode;
@@ -306,6 +311,32 @@ public class ValueVisitor {
 		
 		context.setLastDescriptor("S");
 		context.setLastWasConstant(true);
+	}
+	
+	public void visitExprStringNode(Node node, Context context) throws CompilerLogicException {
+		
+		ExprStringNode esn = (ExprStringNode) node;
+		
+		StringBuilder descriptor = new StringBuilder("(");
+		
+		Compiler ci = context.getCompilerInstance();
+		
+		for(Node expr : esn.getExprs()) {
+			ci.visit(expr, context);
+			descriptor.append(context.getLastDescriptor());
+		}
+		
+		descriptor.append(")Ljava/lang/String;");
+		
+		context.getOpStack().push(new InvokeDynamicNode("makeConcatWithConstants", descriptor.toString(), new Handle(Opcodes.H_INVOKESTATIC, 
+				"java/lang/invoke/StringConcatFactory", 
+				"makeConcatWithConstants", 
+				"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
+				false), 
+			new Object[] {esn.getRep()}));
+	
+		context.setLastDescriptor("Ljava/lang/String;");
+		
 	}
 	
 }

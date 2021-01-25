@@ -73,7 +73,7 @@ public class Lexer {
 				
 				else {
 					reverse();
-					tokens.add(new Token(TokenType.DIVIDE, new Position(column, line, file)));
+					tokens.add(addEquals(TokenType.DIVIDE));
 				}
 				
 			}
@@ -123,11 +123,11 @@ public class Lexer {
 			}
 			
 			else if(currentChar.equals("+")) {
-				tokens.add(new Token(TokenType.PLUS, new Position(column, line, file)));
+				tokens.add(addEquals(TokenType.PLUS));
 			}
 			
 			else if(currentChar.equals("*")) {
-				tokens.add(new Token(TokenType.MULTIPLY, new Position(column, line, file)));
+				tokens.add(addEquals(TokenType.MULTIPLY));
 			}
 			
 			else if(currentChar.equals("&")) {
@@ -139,11 +139,11 @@ public class Lexer {
 			}
 			
 			else if(currentChar.equals("^")) {
-				tokens.add(new Token(TokenType.BIT_XOR, new Position(column, line, file)));
+				tokens.add(addEquals(TokenType.BIT_XOR));
 			}
 			
 			else if(currentChar.equals("%")) {
-				tokens.add(new Token(TokenType.MODULUS, new Position(column, line, file)));
+				tokens.add(addEquals(TokenType.MODULUS));
 			}
 			
 			else if(currentChar.equals(":")) {
@@ -216,6 +216,21 @@ public class Lexer {
 		
 	}
 	
+	private Token addEquals(TokenType def) {
+		Position start = new Position(column, line, file);
+		Position end = new Position(column, line, file);
+		advance();
+		
+		if(currentChar != null && currentChar.equals("=")) {
+			end = new Position(column, line, file);
+			return new InlineEqualsToken(def, start, end);
+		} else {
+			reverse();
+		}
+		
+		return new Token(def, null, start, end);
+	}
+	
 	private Token minus() throws InvalidNumberException {
 		
 		Position start = new Position(column, line, file);
@@ -229,6 +244,11 @@ public class Lexer {
 		if(currentChar != null && currentChar.equals(">")) {
 			type = TokenType.ARROW;
 			end = new Position(column, line, file);
+		}
+		
+		else if(currentChar != null && currentChar.equals("=")) {
+			end = new Position(column, line, file);
+			return new InlineEqualsToken(TokenType.MINUS, start, end);
 		}
 		
 		else if(currentChar != null && currentChar.matches("[0-9]")) {
@@ -262,6 +282,11 @@ public class Lexer {
 			end = new Position(column, line, file);
 		}
 		
+		else if(currentChar != null && currentChar.equals("=")) {
+			end = new Position(column, line, file);
+			return new InlineEqualsToken(TokenType.BIT_AND, start, end);
+		}
+		
 		else {
 			reverse();
 		}
@@ -282,6 +307,11 @@ public class Lexer {
 		if(currentChar != null && currentChar.equals("|")) {
 			type = TokenType.OR;
 			end = new Position(column, line, file);
+		}
+		
+		else if(currentChar != null && currentChar.equals("=")) {
+			end = new Position(column, line, file);
+			return new InlineEqualsToken(TokenType.BIT_OR, start, end);
 		}
 		
 		else {
@@ -371,6 +401,19 @@ public class Lexer {
 			type = TokenType.BOOL_LE;
 			end = new Position(column, line, file);
 		}
+		else if(currentChar != null && currentChar.equals("<")) {
+			type = TokenType.BIT_LSH;
+			end = new Position(column, line, file);
+			
+			advance();
+			if(currentChar != null && currentChar.equals("=")) {
+				end = new Position(column, line, file);
+				return new InlineEqualsToken(type, start, end);
+			}
+			else {
+				reverse();
+			}
+		}
 		
 		else {
 			reverse();
@@ -392,6 +435,31 @@ public class Lexer {
 		if(currentChar != null && currentChar.equals("=")) {
 			type = TokenType.BOOL_GE;
 			end = new Position(column, line, file);
+		}
+		else if(currentChar != null && currentChar.equals(">")) {
+			type = TokenType.BIT_RSH;
+			end = new Position(column, line, file);
+			advance();
+			if(currentChar != null && currentChar.equals("=")) {
+				end = new Position(column, line, file);
+				return new InlineEqualsToken(type, start, end);
+			}
+			
+			else if(currentChar != null && currentChar.equals(">")) {
+				type = TokenType.BIT_ASH;
+				end = new Position(column, line, file);
+				advance();
+				if(currentChar != null && currentChar.equals("=")) {
+					end = new Position(column, line, file);
+					return new InlineEqualsToken(type, start, end);
+				}
+				else {
+					reverse();
+				}
+			}
+			else {
+				reverse();
+			}
 		}
 		
 		else {
@@ -665,6 +733,9 @@ public class Lexer {
 					
 					Lexer lexer = new Lexer();
 					
+					lexer.line = line;
+					lexer.column = column;
+					
 					Token[] toks = lexer.lex(file, this.text.substring(index - 1), "}");
 					
 					this.index = this.index + lexer.index - 1;
@@ -721,6 +792,9 @@ public class Lexer {
 						break;
 					case "\"":
 						value += "\"";
+						break;
+					case "\'":
+						value += "\'";
 						break;
 					default:
 						throw new InvalidEscapeException("Unknown Escape Character: \'\\" + currentChar + "\'.", new Position(column, line, file));
@@ -797,6 +871,9 @@ public class Lexer {
 						break;
 					case "\"":
 						value += "\"";
+						break;
+					case "\'":
+						value += "\'";
 						break;
 					default:
 						throw new InvalidEscapeException("Unknown Escape Character: \'\\" + currentChar + "\'.", new Position(column, line, file));

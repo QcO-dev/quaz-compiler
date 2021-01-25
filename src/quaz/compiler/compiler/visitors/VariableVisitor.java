@@ -235,7 +235,7 @@ public class VariableVisitor {
 
 	}
 
-	private void generatePrimativeStoreValue(String type, int index, OperationStack stack) {
+	public static void generatePrimativeStoreValue(String type, int index, OperationStack stack) {
 		switch(type) {
 			case "char":
 			case "byte":

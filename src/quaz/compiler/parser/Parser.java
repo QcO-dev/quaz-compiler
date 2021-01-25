@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import quaz.compiler.exception.UnexpectedTokenException;
 import quaz.compiler.lexer.ExprStringToken;
+import quaz.compiler.lexer.InlineEqualsToken;
 import quaz.compiler.lexer.Token;
 import quaz.compiler.lexer.TokenType;
 import quaz.compiler.parser.nodes.Node;
@@ -763,15 +764,19 @@ public class Parser {
 		
 		Node left = logicalExpr();
 		
-		while(currentToken.getType() == TokenType.EQUALS) {
+		while(currentToken.getType() == TokenType.EQUALS || currentToken.getType() == TokenType.INLINE_EQ) {
+			Token op = currentToken;
 			TokenType type = currentToken.getType();
 
 			advance(true);
 
 			Node right = logicalExpr();
-
-			left = new BinaryOperationNode(type, left, right, start, currentToken.getEnd());
-
+			
+			if(op.getType() == TokenType.EQUALS) {
+				left = new BinaryOperationNode(type, left, right, start, currentToken.getEnd());
+			} else {
+				left = new BinaryOperationNode(((InlineEqualsToken) op).getInlineType(), left, right, start, currentToken.getEnd(), true);
+			}
 		}
 		
 		//advance(false);
@@ -842,9 +847,28 @@ public class Parser {
 	private Node relationalExpr() throws UnexpectedTokenException {
 		Position start = currentToken.getStart();
 
-		Node left = arithExpr();
+		Node left = shiftExpr();
 		
 		if(currentToken.getType() == TokenType.BOOL_LT || currentToken.getType() == TokenType.BOOL_LE || currentToken.getType() == TokenType.BOOL_GT || currentToken.getType() == TokenType.BOOL_GE) {
+			TokenType type = currentToken.getType();
+
+			advance(true);
+
+			Node right = shiftExpr();
+
+			left = new BinaryOperationNode(type, left, right, start, currentToken.getEnd());
+
+		}
+
+		return left;
+	}
+	
+	private Node shiftExpr() throws UnexpectedTokenException {
+		Position start = currentToken.getStart();
+
+		Node left = arithExpr();
+		
+		if(currentToken.getType() == TokenType.BIT_LSH || currentToken.getType() == TokenType.BIT_RSH || currentToken.getType() == TokenType.BIT_ASH) {
 			TokenType type = currentToken.getType();
 
 			advance(true);

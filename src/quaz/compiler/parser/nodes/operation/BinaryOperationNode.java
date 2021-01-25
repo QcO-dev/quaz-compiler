@@ -9,12 +9,21 @@ public class BinaryOperationNode extends Node {
 	private final TokenType type;
 	private final Node left;
 	private final Node right;
+	private boolean isInlineOp = false;
 	
 	public BinaryOperationNode(TokenType type, Node left, Node right, Position start, Position end) {
 		super(type, start, end);
 		this.type = type;
 		this.left = left;
 		this.right = right;
+	}
+	
+	public BinaryOperationNode(TokenType type, Node left, Node right, Position start, Position end, boolean isInlineOp) {
+		super(type, start, end);
+		this.type = type;
+		this.left = left;
+		this.right = right;
+		this.isInlineOp = isInlineOp;
 	}
 	
 	@Override
@@ -33,5 +42,8 @@ public class BinaryOperationNode extends Node {
 	public Node getRight() {
 		return right;
 	}
-	
+
+	public boolean isInlineOp() {
+		return isInlineOp;
+	}
 }

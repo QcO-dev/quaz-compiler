@@ -32,7 +32,7 @@ public class OperationVisitor {
 
 		BinaryOperationNode bon = (BinaryOperationNode) node;
 
-		if(bon.getLeft() instanceof MemberAccessNode) {
+		if(bon.getLeft() instanceof MemberAccessNode && (bon.getType() == TokenType.EQUALS || bon.isInlineOp())) {
 
 			// context.getVisitor().visitFieldInsn(opcode, owner, name, descriptor);
 			

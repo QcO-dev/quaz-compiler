@@ -265,6 +265,10 @@ public class VariableVisitor {
 		LocalVariable var = context.getLocalVariables().get(name);
 
 		if(var == null) {
+			if(context.getTypeReferences().containsKey(name)) {
+				context.setLastDescriptor("L" + name + ";");
+				return;
+			}
 			throw new CompilerLogicException("Variable \'" + name + "\' does not exist in the current scope.",
 					node.getStart(), node.getEnd());
 		}

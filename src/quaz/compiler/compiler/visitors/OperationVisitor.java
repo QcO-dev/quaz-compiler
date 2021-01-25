@@ -35,8 +35,12 @@ public class OperationVisitor {
 		if(bon.getLeft() instanceof MemberAccessNode) {
 
 			// context.getVisitor().visitFieldInsn(opcode, owner, name, descriptor);
-
-			new ClassesVisitor().putMemberAccessNode(bon.getLeft(), context, bon.getRight());
+			
+			if(!bon.isInlineOp()) {
+				new ClassesVisitor().putMemberAccessNode(bon.getLeft(), context, bon.getRight());
+			}else {
+				new ClassesVisitor().putMemberAccessNode(bon.getLeft(), context, new BinaryOperationNode(bon.getType(), bon.getLeft(), bon.getRight(), bon.getRight().getStart(), bon.getRight().getEnd()));
+			}
 
 			return;
 		}
@@ -61,7 +65,7 @@ public class OperationVisitor {
 		
 		int addedElements = 0;
 		
-		if(bon.getLeft() instanceof VariableAccessNode && bon.getType() == TokenType.EQUALS) {
+		if(bon.getLeft() instanceof VariableAccessNode && (bon.getType() == TokenType.EQUALS || bon.isInlineOp())) {
 			LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
 
 			if(var == null) {
@@ -72,6 +76,13 @@ public class OperationVisitor {
 			
 			leftDesc = var.getDescriptor();
 			context.setLastDescriptor(leftDesc);
+			
+			if(bon.isInlineOp()) {
+				context.getCompilerInstance().visit(bon.getLeft(), context);
+			}
+			
+			context.setLastDescriptor(leftDesc);
+			
 		}
 		else {
 			
@@ -108,6 +119,17 @@ public class OperationVisitor {
 			default:
 				refOperation(leftDesc, bon, bon.getType(), bon.getRight(), context, addedElements);
 				break;
+		}
+		
+		if(bon.getLeft() instanceof VariableAccessNode && bon.isInlineOp()) {
+			LocalVariable var = context.getLocalVariables().get(bon.getLeft().getValue());
+			
+			if(var.isPrimitive()) {
+				VariableVisitor.generatePrimativeStoreValue(Descriptors.descriptorToType(var.getDescriptor()), var.getIndex(), context.getOpStack());
+			} else {
+				context.getOpStack().push(new VarNode(Opcodes.ASTORE, var.getIndex()));
+			}
+			
 		}
 
 	}
@@ -459,6 +481,22 @@ public class OperationVisitor {
 				stack.push(new InsnNode(Opcodes.IXOR));
 				context.setLastDescriptor(leftDesc);
 				break;
+				
+			case BIT_LSH:
+				stack.push(new InsnNode(Opcodes.ISHL));
+				context.setLastDescriptor(leftDesc);
+				break;
+				
+			case BIT_RSH:
+				stack.push(new InsnNode(Opcodes.IUSHR));
+				context.setLastDescriptor(leftDesc);
+				break;
+				
+			case BIT_ASH:
+				stack.push(new InsnNode(Opcodes.ISHR));
+				context.setLastDescriptor(leftDesc);
+				break;
+				
 				
 			case BOOL_TRI_EQ:
 			case BOOL_EQ: {

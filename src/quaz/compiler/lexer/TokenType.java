@@ -19,12 +19,14 @@ public enum TokenType {
 	RPAREN,
 	LSQBR,
 	RSQBR,
-	EQUALS,
 	COLON,
 	SEMI,
 	COMMA,
 	ARROW,
 	DOT,
+	
+	EQUALS,
+	INLINE_EQ,
 	
 	PLUS,
 	MINUS,
@@ -39,6 +41,9 @@ public enum TokenType {
 	BIT_OR,
 	BIT_XOR,
 	BIT_NOT,
+	BIT_LSH,
+	BIT_RSH,
+	BIT_ASH,
 	
 	BOOL_EQ,
 	BOOL_NE,
